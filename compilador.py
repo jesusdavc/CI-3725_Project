@@ -1,0 +1,10 @@
+# compilador.py. This file automatically created by PLY (version 3.11). Don't edit!
+_tabversion   = '3.10'
+_lextokens    = set(('TKSemicolon', 'TkAnd', 'TkArray', 'TkArrow', 'TkAsig', 'TkBool', 'TkCBlock', 'TkCBracket', 'TkColsePar', 'TkComma', 'TkConcat', 'TkDeclare', 'TkDo', 'TkEqual', 'TkError', 'TkFi', 'TkFor', 'TkGeq', 'TkGreater', 'TkGuard', 'TkId', 'TkIf', 'TkInt', 'TkLeq', 'TkLess', 'TkMinus', 'TkMult', 'TkNEqual', 'TkNot', 'TkNum', 'TkOBlock', 'TkOBracket', 'TkOd', 'TkOpenPar', 'TkOr', 'TkOrf', 'TkPlus', 'TkPrint', 'TkSkip', 'TkSoForth', 'TkString', 'TkTwoPoints'))
+_lexreflags   = 64
+_lexliterals  = ''
+_lexstateinfo = {'INITIAL': 'inclusive'}
+_lexstatere   = {'INITIAL': [('(?P<t_TkId>[a-zA-Z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*)|(?P<t_TkNum>[0-9][0-9]*[a-zA-Z0-9_]*)|(?P<t_newline>\\n+)|(?P<t_Tabulador>\\t+ | \\s)|(?P<t_Coment>//.*)|(?P<t_TkOBlock>[|]\\[)|(?P<t_TkCBlock>\\][|])|(?P<t_TkString>".*")|(?P<t_TkSoForth>\\.\\.)|(?P<t_TkGuard>\\[\\])|(?P<t_TkArrow>-->)|(?P<t_TkOr>\\\\/)|(?P<t_TkAnd>/\\\\)|(?P<t_TkNEqual>\\!=)|(?P<t_TkOpenPar>\\()|(?P<t_TkColsePar>\\))|(?P<t_TkAsig>:=)|(?P<t_TkPlus>\\+)|(?P<t_TkMult>\\*)|(?P<t_TkNot>\\!)|(?P<t_TkLeq><=)|(?P<t_TkGeq>>=)|(?P<t_TkEqual>==)|(?P<t_TkOBracket>\\[)|(?P<t_TkCBracket>\\])|(?P<t_TkTwoPoints>\\:)|(?P<t_TkConcat>\\.)|(?P<t_TkComma>,)|(?P<t_TKSemicolon>;)|(?P<t_TkMinus>-)|(?P<t_TkLess><)|(?P<t_TkGreater>>)', [None, ('t_TkId', 'TkId'), None, ('t_TkNum', 'TkNum'), ('t_newline', 'newline'), ('t_Tabulador', 'Tabulador'), ('t_Coment', 'Coment'), (None, 'TkOBlock'), (None, 'TkCBlock'), (None, 'TkString'), (None, 'TkSoForth'), (None, 'TkGuard'), (None, 'TkArrow'), (None, 'TkOr'), (None, 'TkAnd'), (None, 'TkNEqual'), (None, 'TkOpenPar'), (None, 'TkColsePar'), (None, 'TkAsig'), (None, 'TkPlus'), (None, 'TkMult'), (None, 'TkNot'), (None, 'TkLeq'), (None, 'TkGeq'), (None, 'TkEqual'), (None, 'TkOBracket'), (None, 'TkCBracket'), (None, 'TkTwoPoints'), (None, 'TkConcat'), (None, 'TkComma'), (None, 'TKSemicolon'), (None, 'TkMinus'), (None, 'TkLess'), (None, 'TkGreater')])]}
+_lexstateignore = {'INITIAL': ''}
+_lexstateerrorf = {'INITIAL': 't_error'}
+_lexstateeoff = {}
