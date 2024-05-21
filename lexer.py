@@ -140,7 +140,9 @@ try:
             
             if tok.type == "ERROR":
                 error = tok.type
-     
+    f.close()
+
+    f = open(sys.argv[1], "r") 
     if error != 'ERROR':
         for x in f:
             lexer.input(x) # Crear tokens
@@ -152,7 +154,7 @@ try:
                     if tok.type == ('TkId' or 'TkNum' or 'TkString'):
                         print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos}")
                     else:
-                        print(f"{tok.type} {tok.lineno} {tok.lexpos}")      
+                        print(f"{tok.type} {tok.lineno} {tok.lexpos}")     
         
     f.close()
 except:
