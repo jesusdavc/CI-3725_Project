@@ -140,21 +140,12 @@ try:
             
             if tok.type == "ERROR":
                 error = tok.type
-    f.close()
-
-    f = open(sys.argv[1], "r") 
-    if error != 'ERROR':
-        for x in f:
-            lexer.input(x) # Crear tokens
-            while True:
-                tok = lexer.token() # Tomar un token
-                if not tok: 
-                    break      # Se acabo la linea
+            
+            if error != 'ERROR':
+                if tok.type == ('TkId' or 'TkNum' or 'TkString'):
+                    print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos}")
                 else:
-                    if tok.type == ('TkId' or 'TkNum' or 'TkString'):
-                        print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos+1}")
-                    else:
-                        print(f"{tok.type} {tok.lineno} {tok.lexpos+1}")     
+                    print(f"{tok.type} {tok.lineno} {tok.lexpos}")     
         
     f.close()
 except:
