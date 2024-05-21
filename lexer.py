@@ -113,7 +113,7 @@ def t_newline(t):
 # Manejador de errores
 def t_error(t):
     t.type = 'ERROR'
-    print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos}")
+    print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos+1}")
     t.lexer.skip(1)
 
 def t_Tabulador(t):
@@ -152,9 +152,9 @@ try:
                     break      # Se acabo la linea
                 else:
                     if tok.type == ('TkId' or 'TkNum' or 'TkString'):
-                        print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos}")
+                        print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos+1}")
                     else:
-                        print(f"{tok.type} {tok.lineno} {tok.lexpos}")     
+                        print(f"{tok.type} {tok.lineno} {tok.lexpos+1}")     
         
     f.close()
 except:
