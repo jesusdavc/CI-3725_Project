@@ -128,6 +128,7 @@ def t_Coment(t):
 lexer = lex.lex(optimize=1, lextab= "compilador")
 
 # Abre el archivo
+tokens_file = []
 try:
     f = open(sys.argv[1], "r")
     for x in f:
@@ -140,13 +141,13 @@ try:
             
             if tok.type == "ERROR":
                 error = tok.type
-            
             if error != 'ERROR':
-                if tok.type == ('TkId' or 'TkNum' or 'TkString'):
-                    print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos}")
-                else:
-                    print(f"{tok.type} {tok.lineno} {tok.lexpos}")     
-        
+                tokens_file.append(x)
+        for y in tokens_file:
+            lexer.input(y)
+            while True:
+                tok = lexer.token() # Tomar un token
+
     f.close()
 except:
     # Caso donde no se consiguio el archivo o no lo indico
