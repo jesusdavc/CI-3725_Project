@@ -104,7 +104,7 @@ def t_TkNum(t):
     except:
         #t.type = 'ERROR'        # En caso contrario sitia el tipo del token como ERROR
         t_error(t)
-        return t
+
 
 def t_newline(t):
     r'\n+'
@@ -112,43 +112,67 @@ def t_newline(t):
 
 # Manejador de errores
 def t_error(t):
-    t.type = 'ERROR'
-    print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos+1}")
+    print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos}")
+    error.sum()
     t.lexer.skip(1)
-
+    
 def t_Tabulador(t):
-    r'\t+ | \s'
+    r'\t+ | \s+'
     pass
 
 def t_Coment(t):
     r'//.*'
     pass
 
+# Crear clase que permita contar los errores encontrados
+class Error_Counter: 
+    def __init__(self, error = 0): 
+         self._error = error 
+      
+    # getter method 
+    def get_value(self): 
+        return self._error
+      
+    # setter method 
+    def set_value(self, x): 
+        self._error = x
+
+    def sum(self): 
+        self._error = self.get_value() +1
+ 
 # Construye el lexer
 lexer = lex.lex(optimize=1, lextab= "compilador")
 
 # Abre el archivo
 tokens_file = []
 try:
+    error = Error_Counter()
     f = open(sys.argv[1], "r")
-    for x in f:
-        error = ''
+    content = f.readlines()
+    print(content)
+    f.close()
+    
+    for x in content:
         lexer.input(x) # Crear tokens
         while True:
             tok = lexer.token() # Tomar un token
             if not tok: 
                 break      # Se acabo la linea
-            
-            if tok.type == "ERROR":
-                error = tok.type
-            if error != 'ERROR':
-                tokens_file.append(x)
-        for y in tokens_file:
-            lexer.input(y)
+    
+    if error.get_value() == 0:
+        lexer.lineno = 1
+        for x in content:
+            lexer.input(x) # Crear tokens
             while True:
                 tok = lexer.token() # Tomar un token
-
-    f.close()
+                if not tok: 
+                    break      # Se acabo la linea
+                else:
+                    if tok.type == ('TkId' or 'TkNum' or 'TkString'):
+                        print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos}")
+                    else:
+                        print(f"{tok.type} {tok.lineno} {tok.lexpos}")      
+        
 except:
     # Caso donde no se consiguio el archivo o no lo indico
     print("Archivo no encontrado, indique un archivo para analizar")
