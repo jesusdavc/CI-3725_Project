@@ -1,4 +1,3 @@
-
 # ------------------------------------------------------------
 # lexer.py
 # Analizador lexicografico para el lenguaje GCL
@@ -60,7 +59,7 @@ tokens = tuple(reserved.values()) + (
 
 # Reglas de las expresiones regulares para cada token
 
-t_TkString = r'".*"'
+t_TkString = r'"[^"\\]*(\\.[^"\\]*)*"'
 t_TkOBlock = r'[|]\['
 t_TkCBlock = r'\][|]'
 t_TkSoForth = r'\.\.'
@@ -86,13 +85,13 @@ t_TkNEqual = r'\!='
 t_TkOBracket = r'\['
 t_TkCBracket = r'\]'
 t_TkTwoPoints = r'\:'
-t_TkConcat = r'\.'
+t_TkConcat = r'[.]'
 
 # Expresiones regulares que poseeen alguna acción extra
 
 
 def t_TkId(t):
-    r'[a-zA-Z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*' # Identifica si es una variable o una palabra reservada
+    r'([a-zA-Z] | _)[a-zA-Z0-9]*(_[a-zA-Z0-9]+)*[_]*' # Identifica si es una variable o una palabra reservada
     t.type = reserved.get(t.value,'TkId')
     return t
 
@@ -102,8 +101,7 @@ def t_TkNum(t):
         t.value = int(t.value) # En caso de serlo conviertelo a tipo int
         return t
     except:
-        #t.type = 'ERROR'        # En caso contrario sitia el tipo del token como ERROR
-        t_error(t)
+        t_error(t)         # En caso contrario sitia el tipo del token como ERROR
 
 
 def t_newline(t):
@@ -112,12 +110,12 @@ def t_newline(t):
 
 # Manejador de errores
 def t_error(t):
-    print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos}")
+    print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos+1}")
     error.sum()
     t.lexer.skip(1)
     
 def t_Tabulador(t):
-    r'\t+ | \s+'
+    r'(\t+ | \s+)'
     pass
 
 def t_Coment(t):
@@ -129,18 +127,15 @@ class Error_Counter:
     def __init__(self, error = 0): 
          self._error = error 
       
-    # getter method 
+    # metodo getter
     def get_value(self): 
         return self._error
-      
-    # setter method 
-    def set_value(self, x): 
-        self._error = x
-
+    # metodo para aumentar en 1
     def sum(self): 
         self._error = self.get_value() +1
  
 # Construye el lexer
+
 lexer = lex.lex(optimize=1, lextab= "compilador")
 
 # Abre el archivo
@@ -149,8 +144,8 @@ try:
     error = Error_Counter()
     f = open(sys.argv[1], "r")
     content = f.readlines()
-    print(content)
     f.close()
+    lexer.lineno = 1
     
     for x in content:
         lexer.input(x) # Crear tokens
@@ -158,7 +153,7 @@ try:
             tok = lexer.token() # Tomar un token
             if not tok: 
                 break      # Se acabo la linea
-    
+
     if error.get_value() == 0:
         lexer.lineno = 1
         for x in content:
@@ -168,10 +163,12 @@ try:
                 if not tok: 
                     break      # Se acabo la linea
                 else:
-                    if tok.type == ('TkId' or 'TkNum' or 'TkString'):
-                        print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos}")
+                    if tok.type == 'TkId':
+                        print(f"{tok.type} (\"{tok.value}\") {tok.lineno} {tok.lexpos+1}")
+                    elif tok.type == 'TkNum' or tok.type == 'TkString':
+                        print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos+1}")
                     else:
-                        print(f"{tok.type} {tok.lineno} {tok.lexpos}")      
+                        print(f"{tok.type} {tok.lineno} {tok.lexpos+1}")    
         
 except:
     # Caso donde no se consiguio el archivo o no lo indico
