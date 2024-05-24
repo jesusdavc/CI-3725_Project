@@ -3,7 +3,6 @@
 # Analizador lexicografico para el lenguaje GCL
 # ------------------------------------------------------------
 import sys
-
 if ".." not in sys.path: sys.path.insert(0,"..")
 import ply.lex as lex
 
@@ -144,6 +143,7 @@ lexer = lex.lex(optimize=1, lextab= "compilador")
 try:
     error = Error_Counter()
     f = open(sys.argv[1], "r")
+    assert f.name.endswith('.gcl')
     content = f.readlines()
     f.close()
     lexer.lineno = 1
@@ -173,4 +173,4 @@ try:
         
 except:
     # Caso donde no se consiguio el archivo o no lo indico
-    print("Archivo no encontrado, indique un archivo para analizar")
+    print("Archivo no encontrado o no es de extensión .gcl, indique un archivo para analizar")
