@@ -117,9 +117,7 @@ def t_error(t):
     error.sum()
     t.lexer.skip(1)
     
-def t_Tabulador(t):
-    r'(\t+ | \s+)'
-    pass
+t_ignore = ' \t'
 
 def t_Coment(t):
     r'//.*'
