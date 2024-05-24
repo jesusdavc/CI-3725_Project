@@ -172,9 +172,9 @@ try:
                     break      # Se acabo la linea
                 else:
                     if tok.type == 'TkId':
-                        print(f"{tok.type} (\"{tok.value}\") {tok.lineno} {tok.lexpos+1}")
+                        print(f"{tok.type}(\"{tok.value}\") {tok.lineno} {tok.lexpos+1}")
                     elif tok.type == 'TkNum' or tok.type == 'TkString':
-                        print(f"{tok.type} ({tok.value}) {tok.lineno} {tok.lexpos+1}")
+                        print(f"{tok.type}({tok.value}) {tok.lineno} {tok.lexpos+1}")
                     else:
                         print(f"{tok.type} {tok.lineno} {tok.lexpos+1}")    
         
