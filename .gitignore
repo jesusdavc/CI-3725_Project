@@ -163,4 +163,5 @@ cython_debug/
 
 /CasosDePrueba
 
-*.out
+*.out        
+*.txt
