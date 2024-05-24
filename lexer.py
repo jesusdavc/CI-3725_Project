@@ -15,13 +15,17 @@ reserved = {
    'do' : 'TkDo',
    'od' : 'TkOd',
    'for' : 'TkFor',
-   'rof' : 'TkOrf',
+   'rof' : 'TkRof',
    'int' : 'TkInt',
    'bool' : 'TkBool',
    'array' : 'TkArray',
    'skip' : 'TkSkip',
    'print' : 'TkPrint',
-   'ERROR' : 'TkError'
+   'ERROR' : 'TkError',
+   'false' : 'TkFalse',
+   'true'  : 'TkTrue',
+   'in'    : 'TkIn',
+   'to'    : 'TkTo'
 }
 
 # Lista de los nombres de los tokens. Siempre es requerido
@@ -34,9 +38,9 @@ tokens = tuple(reserved.values()) + (
    'TkSoForth',
    'TkComma',
    'TkOpenPar',
-   'TkColsePar',
+   'TkClosePar',
    'TkAsig',
-   'TKSemicolon',
+   'TkSemicolon',
    'TkArrow',
    'TkGuard',
    'TkPlus',
@@ -59,15 +63,15 @@ tokens = tuple(reserved.values()) + (
 
 # Reglas de las expresiones regulares para cada token
 
-t_TkString = r'"[^"\\]*(\\.[^"\\]*)*"'
+#t_TkString = r'"[^"\\]*(\\.[^"\\]*)*"'
 t_TkOBlock = r'[|]\['
 t_TkCBlock = r'\][|]'
 t_TkSoForth = r'\.\.'
 t_TkComma = r','
 t_TkOpenPar = r'\('
-t_TkColsePar = r'\)'
+t_TkClosePar = r'\)'
 t_TkAsig = r':='
-t_TKSemicolon = r';'
+t_TkSemicolon = r';'
 t_TkArrow = r'-->'
 t_TkGuard = r'\[\]'
 t_TkPlus = r'\+'
@@ -89,7 +93,6 @@ t_TkConcat = r'[.]'
 
 # Expresiones regulares que poseeen alguna acción extra
 
-
 def t_TkId(t):
     r'([a-zA-Z] | _)[a-zA-Z0-9]*(_[a-zA-Z0-9]+)*[_]*' # Identifica si es una variable o una palabra reservada
     t.type = reserved.get(t.value,'TkId')
@@ -107,6 +110,11 @@ def t_TkNum(t):
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += t.value.count("\n")   # Cuenta las filas del archivo a leer
+
+def t_TkString(t):
+    r'\"(\\\"|\\\\|\\n|[^\\\n])*?\"'
+    t.value = t.value[1 : -1]
+    return t
 
 # Manejador de errores
 def t_error(t):
