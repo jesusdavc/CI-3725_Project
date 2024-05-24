@@ -1,6 +1,15 @@
 # ------------------------------------------------------------
+# Universidad Simón Bolívar
+# CI-3725 Traductores e Interpretadores
+# Proyecto. Etapa 1. Analisis Lexicográfico
+# Estudiantes:
+# Jesús Prieto 19-10211
+# Jesús Cuéllar 15-10345
 # lexer.py
 # Analizador lexicografico para el lenguaje GCL
+# Se contruye una analizador lexicográfico para GCL en el 
+# lenguaje Python para GCL implementando PLY
+# Documentación PLY: http://www.dabeaz.com/ply/ 
 # ------------------------------------------------------------
 import sys
 if ".." not in sys.path: sys.path.insert(0,"..")
@@ -92,32 +101,37 @@ t_TkConcat = r'[.]'
 
 # Expresiones regulares que poseeen alguna acción extra
 
+# Función t_TkId. Indentifica si es una variable o una palabra reservada. 
 def t_TkId(t):
-    r'([a-zA-Z] | _)[a-zA-Z0-9]*(_[a-zA-Z0-9]+)*[_]*' # Identifica si es una variable o una palabra reservada
+    r'([a-zA-Z] | _)[a-zA-Z0-9]*(_[a-zA-Z0-9]+)*[_]*' 
     t.type = reserved.get(t.value,'TkId')
     return t
-
+#Función t_TkNum. Indentifica si es número y si lo es lo pasa a tipo int
+# En caso contrario sitia el tipo del token como ERROR
 def t_TkNum(t):
-    r'[0-9][0-9]*[a-zA-Z0-9_]*' # Identifica si es un numero
+    r'[0-9][0-9]*[a-zA-Z0-9_]*'
     try:
-        t.value = int(t.value) # En caso de serlo conviertelo a tipo int
+        t.value = int(t.value)
         return t
     except:
-        t_error(t)         # En caso contrario sitia el tipo del token como ERROR
+        t_error(t)         
 
-
+# Función t_newline
+# Cuenta las filas del archivo a leer
 def t_newline(t):
     r'\n+'
-    t.lexer.lineno += t.value.count("\n")   # Cuenta las filas del archivo a leer
+    t.lexer.lineno += t.value.count("\n")   
 
 # Manejador de errores
 def t_error(t):
     print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos+1}")
     error.sum()
     t.lexer.skip(1)
-    
-t_ignore = ' \t'
 
+# Ignora tabulaciones y espacios
+t_ignore = ' \t' 
+
+# Ignora Comentarios
 def t_Coment(t):
     r'//.*'
     pass
@@ -143,18 +157,18 @@ lexer = lex.lex(optimize=1, lextab= "compilador")
 try:
     error = Error_Counter()
     f = open(sys.argv[1], "r")
-    assert f.name.endswith('.gcl')
+    assert f.name.endswith('.gcl') #assert que verifica la extensión
     content = f.readlines()
     f.close()
     lexer.lineno = 1
-
+    # Se buscan errores en un primer recorrido.
     for x in content:
         lexer.input(x) # Crear tokens
         while True:
             tok = lexer.token() # Tomar un token
             if not tok: 
                 break      # Se acabo la linea
-
+    #Si no hay errores se hace otro recorrido e imprime los tokens
     if error.get_value() == 0:
         lexer.lineno = 1
         for x in content:
