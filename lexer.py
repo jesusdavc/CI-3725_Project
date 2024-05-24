@@ -1,6 +1,7 @@
 # ------------------------------------------------------------
 # lexer.py
 # Analizador lexicografico para el lenguaje GCL
+# Carnet: 15-10345 y 19-10211
 # ------------------------------------------------------------
 import sys
 if ".." not in sys.path: sys.path.insert(0,"..")
@@ -110,17 +111,18 @@ def t_newline(t):
     r'\n+'
     t.lexer.lineno += t.value.count("\n")   # Cuenta las filas del archivo a leer
 
+def t_Coment(t):
+    r'//.*'     # Ignora las oraciones que empiezan con //
+    pass
+
 # Manejador de errores
 def t_error(t):
     print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos+1}")
     error.sum()
     t.lexer.skip(1)
-    
-t_ignore = ' \t'
 
-def t_Coment(t):
-    r'//.*'
-    pass
+# Ignora el tabulador  
+t_ignore = ' \t'
 
 # Crear clase que permita contar los errores encontrados
 class Error_Counter: 
@@ -142,12 +144,13 @@ lexer = lex.lex(optimize=1, lextab= "compilador")
 
 try:
     error = Error_Counter()
-    f = open(sys.argv[1], "r")
-    assert f.name.endswith('.gcl')
+    f = open(sys.argv[1], "r")   
+    assert f.name.endswith('.gcl') # Verifica que sea un .gcl
     content = f.readlines()
     f.close()
     lexer.lineno = 1
 
+    # Primer analisis, se buscan posibles errores
     for x in content:
         lexer.input(x) # Crear tokens
         while True:
@@ -155,6 +158,7 @@ try:
             if not tok: 
                 break      # Se acabo la linea
 
+    # En caso de no tener error procedemos a imprimir cada token
     if error.get_value() == 0:
         lexer.lineno = 1
         for x in content:
