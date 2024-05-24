@@ -63,7 +63,7 @@ tokens = tuple(reserved.values()) + (
 
 # Reglas de las expresiones regulares para cada token
 
-#t_TkString = r'"[^"\\]*(\\.[^"\\]*)*"'
+t_TkString = r'\"(\\\"|\\\\|\\n|[^\\\n])*?\"'
 t_TkOBlock = r'[|]\['
 t_TkCBlock = r'\][|]'
 t_TkSoForth = r'\.\.'
@@ -111,11 +111,6 @@ def t_newline(t):
     r'\n+'
     t.lexer.lineno += t.value.count("\n")   # Cuenta las filas del archivo a leer
 
-def t_TkString(t):
-    r'\"(\\\"|\\\\|\\n|[^\\\n])*?\"'
-    t.value = t.value[1 : -1]
-    return t
-
 # Manejador de errores
 def t_error(t):
     print (f"Error: Unexpected character \"{t.value[0]}\" in row {t.lineno}, column {t.lexpos+1}")
@@ -147,14 +142,14 @@ class Error_Counter:
 lexer = lex.lex(optimize=1, lextab= "compilador")
 
 # Abre el archivo
-tokens_file = []
+
 try:
     error = Error_Counter()
     f = open(sys.argv[1], "r")
     content = f.readlines()
     f.close()
     lexer.lineno = 1
-    
+
     for x in content:
         lexer.input(x) # Crear tokens
         while True:
