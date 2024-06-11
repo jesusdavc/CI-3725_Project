@@ -1,0 +1,8 @@
+|[
+  declare
+    a, b, i : int;
+    x, y : array[2..5]
+    // iterar entre a y b
+  a := 1;
+  b := 4;
+]|

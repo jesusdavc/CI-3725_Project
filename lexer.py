@@ -6,6 +6,7 @@
 import sys
 if ".." not in sys.path: sys.path.insert(0,"..")
 import ply.lex as lex
+import ply.yacc as yacc
 
 # Lista con los token de las palabras reservadas para GCL
 reserved = {
@@ -59,6 +60,7 @@ tokens = tuple(reserved.values()) + (
    'TkCBracket',
    'TkTwoPoints',
    'TkConcat',
+   'TkComent'
 ) 
 
 # Reglas de las expresiones regulares para cada token
@@ -111,7 +113,7 @@ def t_newline(t):
     r'\n+'
     t.lexer.lineno += t.value.count("\n")   # Cuenta las filas del archivo a leer
 
-def t_Coment(t):
+def t_TkComent(t):
     r'//.*'     # Ignora las oraciones que empiezan con //
     pass
 
@@ -142,14 +144,13 @@ lexer = lex.lex(optimize=1, lextab= "compilador")
 
 # Abre el archivo
 
+error = Error_Counter()
+'''
 try:
-    error = Error_Counter()
     f = open(sys.argv[1], "r")   
     assert f.name.endswith('.gcl') # Verifica que sea un .gcl
     content = f.readlines()
     f.close()
-    lexer.lineno = 1
-
     # Primer analisis, se buscan posibles errores
     for x in content:
         lexer.input(x) # Crear tokens
@@ -159,6 +160,7 @@ try:
                 break      # Se acabo la linea
 
     # En caso de no tener error procedemos a imprimir cada token
+
     if error.get_value() == 0:
         lexer.lineno = 1
         for x in content:
@@ -168,13 +170,15 @@ try:
                 if not tok: 
                     break      # Se acabo la linea
                 else:
+                    traduccion_lexer.append(tok.type)
+                    traduccion_lexer.append(tok.value)
                     if tok.type == 'TkId':
                         print(f"{tok.type}(\"{tok.value}\") {tok.lineno} {tok.lexpos+1}")
                     elif tok.type == 'TkNum' or tok.type == 'TkString':
                         print(f"{tok.type}({tok.value}) {tok.lineno} {tok.lexpos+1}")
                     else:
-                        print(f"{tok.type} {tok.lineno} {tok.lexpos+1}")    
-        
+                        print(f"{tok.type} {tok.lineno} {tok.lexpos+1}")  
 except:
     # Caso donde no se consiguio el archivo o no lo indico
     print("Archivo no encontrado o no es de extensión .gcl, indique un archivo para analizar")
+'''
