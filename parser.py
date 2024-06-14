@@ -12,9 +12,10 @@ if ".." not in sys.path: sys.path.insert(0,"..") # type: ignore
 
 # Precedencia de algunas expresiones de GCL
 precedence = (
-    ('rigth', 'TkSemicolon'),
     ('left', 'TkTwoPoints'),
     ('left', 'TkComma'),
+    ('rigth', 'TkAsig'),
+    ('rigth', 'TkSemicolon'),
 )
 
 # Produccion para detectar un programa en GCL
@@ -36,7 +37,8 @@ def p_expresion_semicolon(p):
                  | expresion TkAsig expresion
                  | expresion TkAsig number
                  | soForth
-                 | twoPoints 
+                 | twoPoints
+                 | comma 
                  | space
                  | Word
                  | number
@@ -62,6 +64,13 @@ def p_expresion_two_point(p):
     
     p[0] = TwoPoints("TwoPoints: ", p[1], p[3])
     print("dos puntos nivel: "+p[1].type +","+ p[3].type) 
+
+# Produccion para detectar la expresion no terminal Comma
+def p_expresion_comma(p):
+    '''comma : expresion TkComma expresion'''
+    
+    p[0] = Comma("Comma: ", p[1], p[3])
+    print("Coma nivel: "+p[1].type +","+ p[3].type) 
 
 # Produccion para detectar la expresion no terminal SoForth
 def p_expresion_so_forth(p):
@@ -244,10 +253,10 @@ class TwoPoints:
         self.right = right
 
     def print_AST(self, level=0):
-        #res = "Estoy en AST Twopoint, el hijo izquierdo es: "+ str(self.left.value)
-        #print(res) 
-        #res = "Estoy en AST Twopoint, el hijo derecho es: "+ self.right.type
-        #print(res)
+        res = "Estoy en AST Twopoint, el hijo izquierdo es: "+ str(self.left.value)
+        print(res) 
+        res = "Estoy en AST Twopoint, el hijo derecho es: "+ self.right.type
+        print(res)
         if (self.right.value == "int" or self.right.value == "bool" 
             or self.right.type == "Array"): 
             #print("Estoy en AST TwoPoint QD")
@@ -275,6 +284,10 @@ class Asignation:
 
     def print_AST(self, level=0):
         AST = "-"*level + self.type
+        #print("Estoy en Asignacion con valores I,D:")
+        #print(self.left.type)
+        #print(self.right.type)
+        #print(self.right.value)
         print(AST)
         self.left.print_AST(level+1)
         self.right.print_AST(level+1)
@@ -290,6 +303,28 @@ class Space_Declare:
         self.left.print_AST(level+1)
         self.right.print_AST(level+1)
 
+class Comma:
+
+    def __init__(self, type, left=None, right=None):
+        self.type = type
+        self.left = left
+        self.right = right
+
+    def print_AST(self, level=0):
+        AST = "-"*level + self.type
+        print(AST)
+        self.left.print_AST(level+1)
+        self.right.print_AST(level+1)
+
+    def print_AST_DQ(self, level=0):
+        #print("Estoy en AST ARRAY DQ")
+        #print(self.value)
+        pila = deque()
+        pila += self.left.print_AST_DQ()
+        pila.append(",")
+        pila += self.right.print_AST_DQ()
+        return pila  
+     
 class Array:
 
     def __init__(self, type, value=0, right=None):
