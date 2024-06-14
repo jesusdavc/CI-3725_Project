@@ -12,9 +12,9 @@ if ".." not in sys.path: sys.path.insert(0,"..") # type: ignore
 
 # Precedencia de algunas expresiones de GCL
 precedence = (
-    ('left', 'TkTwoPoints'),
     ('left', 'TkComma'),
-    ('rigth', 'TkAsig'),
+    ('left', 'TkTwoPoints', 'TkAsig'),
+    ('left', 'TkOpenPar', 'TkClosePar'),
     ('rigth', 'TkSemicolon'),
 )
 
@@ -37,6 +37,7 @@ def p_expresion_semicolon(p):
                  | expresion TkAsig expresion
                  | expresion TkAsig number
                  | soForth
+                 | writeArray
                  | twoPoints
                  | comma 
                  | space
@@ -113,6 +114,19 @@ def p_read_array(p):
     else:
         p[0] = ReadArray("ReadArray", p[2])
         print("ReadArray []: "+ str(p[2].type) )
+
+# Produccion para escribir un array
+def p_write_array(p):
+    '''writeArray : expresion TkOpenPar expresion TkClosePar
+                  | TkOpenPar expresion TkClosePar'''
+    
+    if (len(p) > 4):
+        p[0] = ReadArray("WriteArray", p[1], p[3])
+        print("Write x(): "+ str(p[1].type) +".."+ str(p[3].type))
+    else:
+        p[0] = ReadArray("WriteArray", p[2])
+        print("Write (): "+ str(p[2].type) )
+
 # Produccion para detectar la expresion terminal de un numero
 def p_number(p):
     '''number : TkNum'''
@@ -253,10 +267,10 @@ class TwoPoints:
         self.right = right
 
     def print_AST(self, level=0):
-        res = "Estoy en AST Twopoint, el hijo izquierdo es: "+ str(self.left.value)
-        print(res) 
-        res = "Estoy en AST Twopoint, el hijo derecho es: "+ self.right.type
-        print(res)
+        #res = "Estoy en AST Twopoint, el hijo izquierdo es: "+ str(self.left.value)
+        #print(res) 
+        #res = "Estoy en AST Twopoint, el hijo derecho es: "+ self.right.type
+        #print(res)
         if (self.right.value == "int" or self.right.value == "bool" 
             or self.right.type == "Array"): 
             #print("Estoy en AST TwoPoint QD")
@@ -361,6 +375,28 @@ class ReadArray:
         pila.append("[")
         pila += self.left.print_AST_DQ()
         pila.append("]")
+        return pila
+    
+class WriteArray:
+
+    def __init__(self, type, left=None, right=None):
+        self.type = type
+        self.left = left
+        self.right = right
+
+    def print_AST(self, level=0):
+        #print("Estoy en AST READ")
+        ret = "-"*level + self.type+":"
+        print(ret)
+        self.left.print_AST(level+1)
+        self.right.print_AST(level+1)
+
+    def print_AST_DQ(self):
+        #print("Estoy en AST DQ READ")
+        pila = deque()
+        pila.append("(")
+        pila += self.left.print_AST_DQ()
+        pila.append(")")
         return pila
 
   
