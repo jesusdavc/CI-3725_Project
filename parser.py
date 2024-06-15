@@ -13,11 +13,11 @@ if ".." not in sys.path: sys.path.insert(0,"..") # type: ignore
 # Precedencia de algunas expresiones de GCL
 precedence = (
     ('left', 'TkTo'),
-    ('rigth', 'TkIn'),
-    ('left', 'TkComma'),
+    ('right', 'TkIn'),
+    ('left', 'TkComma', 'TkConcat'),
     ('left', 'TkTwoPoints', 'TkAsig'),
     ('left', 'TkOpenPar', 'TkClosePar'),
-    ('rigth', 'TkSemicolon'),
+    ('right', 'TkSemicolon'),
 )
 
 # Produccion para detectar un programa en GCL
@@ -38,7 +38,9 @@ def p_expresion_semicolon(p):
     '''expresion : expresion TkSemicolon expresion
                  | expresion TkAsig expresion
                  | expresion TkAsig number
+                 | print
                  | soForth
+                 | concat
                  | writeArray
                  | twoPoints
                  | bucle
@@ -47,6 +49,7 @@ def p_expresion_semicolon(p):
                  | space
                  | Word
                  | number
+                 | String
                  | Empty '''
     
     if len(p) > 2:
@@ -76,6 +79,13 @@ def p_expresion_comma(p):
     
     p[0] = Comma("Comma: ", p[1], p[3])
     print("Coma nivel: "+p[1].type +","+ p[3].type) 
+
+# Produccion para detectar la expresion no terminal Concat
+def p_expresion_concat(p):
+    '''concat : expresion TkConcat expresion'''
+    
+    p[0] = Concat("Concat: ", p[1], p[3])
+    print("Concatenar nivel: "+p[1].type +","+ p[3].type) 
 
 # Produccion para detectar la expresion no terminal SoForth
 def p_expresion_so_forth(p):
@@ -148,6 +158,11 @@ def p_write_array(p):
         p[0] = ReadArray("WriteArray", p[2])
         print("Write (): "+ str(p[2].type) )
 
+# Produccion para detectar un print
+def p_expresion_print(p):
+    '''print : TkPrint expresion'''
+    p[0] = toAtom("Print", p[2])
+
 # Produccion para detectar la expresion terminal de un numero
 def p_number(p):
     '''number : TkNum'''
@@ -159,6 +174,12 @@ def p_expresion_id(p):
     '''Word : TkId'''
     p[0] = Atom("Ident: ", p[1])
     print("Ident: "+ p[1])
+
+# Produccion para detectar la expresion terminal de un identificador
+def p_expresion_string(p):
+    '''String : TkString'''
+    p[0] = Atom("String: ", p[1])
+    print("String: "+ p[1])
 
 # Produccion para detectar la expresion terminal vacia o letra
 def p_expresion_empty(p):
@@ -359,7 +380,29 @@ class Comma:
         pila.append(",")
         pila += self.right.print_AST_DQ()
         return pila  
-     
+    
+class Concat:
+
+    def __init__(self, type, left=None, right=None):
+        self.type = type
+        self.left = left
+        self.right = right
+
+    def print_AST(self, level=0):
+        AST = "-"*level + self.type
+        print(AST)
+        self.left.print_AST(level+1)
+        self.right.print_AST(level+1)
+
+    def print_AST_DQ(self, level=0):
+        #print("Estoy en AST ARRAY DQ")
+        #print(self.value)
+        pila = deque()
+        pila += self.left.print_AST_DQ()
+        pila.append(".")
+        pila += self.right.print_AST_DQ()
+        return pila 
+       
 class Array:
 
     def __init__(self, type, value=0, right=None):
@@ -491,7 +534,14 @@ class toAtom:
         self.value = value
 
     def print_AST(self, level=0):
-        self.children.print_AST(level)
+        #print("Estoy en toAtom con type:")
+        #print(self.type)
+        if(self.type == "Print"):
+            AST = "-"*level + self.type
+            print(AST)
+            self.children.print_AST(level+1)
+        else:
+            self.children.print_AST(level)
 
     def print_AST_DQ(self):
         return self.children.print_AST_DQ()
