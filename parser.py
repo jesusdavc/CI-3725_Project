@@ -12,6 +12,8 @@ if ".." not in sys.path: sys.path.insert(0,"..") # type: ignore
 
 # Precedencia de algunas expresiones de GCL
 precedence = (
+    ('left', 'TkTo'),
+    ('rigth', 'TkIn'),
     ('left', 'TkComma'),
     ('left', 'TkTwoPoints', 'TkAsig'),
     ('left', 'TkOpenPar', 'TkClosePar'),
@@ -39,6 +41,8 @@ def p_expresion_semicolon(p):
                  | soForth
                  | writeArray
                  | twoPoints
+                 | bucle
+                 | condicion
                  | comma 
                  | space
                  | Word
@@ -86,6 +90,23 @@ def p_expresion_space_empty(p):
     p[0] = Space_Declare("Space: ", p[1], p[2])
     print("space: "+p[1].type +","+ p[2].type) 
 
+# Produccion para detectar el bucle for
+def p_for(p):
+    '''bucle : TkFor condicion TkArrow expresion TkRof'''
+    p[0] = Loop_For("For: ", p[2], p[4])
+    print("For: "+p[2].type +","+ p[4].type) 
+
+# Produccion para detectar condicion In y To
+def p_expresion_condicion(p):
+    '''condicion : expresion TkIn expresion
+                 | expresion TkTo expresion'''
+    
+    if (p[2] == 'in'):
+        p[0] = Loop_For("In ", p[1], p[3])
+        print("In: "+p[1].type +","+ p[3].type) 
+    else:
+        p[0] = Loop_For("To ", p[1], p[3])
+        print("To: "+p[1].type +","+ p[3].type)
 
 # Produccion para detectar las palabras reservadas
 def p_reserved(p):
@@ -398,6 +419,23 @@ class WriteArray:
         pila += self.left.print_AST_DQ()
         pila.append(")")
         return pila
+    
+class Loop_For:
+
+    def __init__(self, type, left=None, right=None):
+        self.type = type
+        self.left = left
+        self.right = right
+
+    def print_AST(self, level=0):
+        #res = "Estoy en AST FOR, el hijo izquierdo es: "+ str(self.left)
+        #print(res) 
+        #res = "Estoy en AST FOR, el hijo derecho es: "+ str(self.right)
+        #print(res)
+        ret = "-"*level + self.type
+        print(ret)
+        self.left.print_AST(level+1)
+        self.right.print_AST(level+1)
 
   
 class TwoSoFort:
