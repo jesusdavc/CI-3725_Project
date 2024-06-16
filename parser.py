@@ -34,8 +34,8 @@ precedence = (
     ('left', 'TkOpenPar', 'TkClosePar'),
     ('left', 'TkSoForth'),
     ('left', 'TkPrint'),
-    ('left', 'TkString'),
     ('left', 'TkConcat'),
+    ('left', 'TkString'),
     ('left', 'TkId', 'TkNum'),
 )
 
@@ -66,8 +66,6 @@ def p_expresion(p):
                  | do
                  | if
                  | print
-                 | string
-                 | concat
                  | word
                  | proposition
                  | readArray
@@ -88,9 +86,7 @@ def p_expresion_space_empty(p):
     print("space: "+p[1].type +","+ p[2].type) 
 
 def p_expresion_semicolon(p):
-    '''semicolon : expresion TkSemicolon expresion
-                 | print TkSemicolon expresion
-                 | expresion TkSemicolon print''' 
+    '''semicolon : expresion TkSemicolon expresion''' 
     
     p[0] = Secuencia("Secuencia", p[1],p[3])
     print("semicolon nivel: "+p[1].type + ";" + p[3].type)
@@ -316,25 +312,29 @@ def p_arrow(p):
     p[0] = Arrow("Then", p[1], p[3])
     print("Arrow: "+p[1].type +","+ p[3].type)
 
-# Produccion para detectar la expresion no terminal Concat
-def p_expresion_concat(p):
-    "concat : expresion TkConcat expresion"
-    
-    p[0] = Concat("Concat: ", p[1], p[3])
-    print("Concatenar nivel: "+p[1].type +","+ p[3].type) 
-
 # Produccion para detectar un print
 def p_expresion_print(p):
-    '''print : TkPrint string
-             | TkPrint concat'''
+    '''print : TkPrint sentence'''
+
     p[0] = Print("Print", p[2])
     print("Print: "+ p[2].type)
-
 # Produccion para detectar la expresion terminal de un identificador
-def p_expresion_string(p):
+def p_expresion_sentence(p):
+    '''sentence : sentence TkConcat sentence
+                | expresion
+                | string'''
+    if len(p) > 2:
+        p[0] = Concat("Concat: ", p[1], p[3])
+        print("Concatenar nivel: "+p[1].type +","+ p[3].type) 
+    else:
+        p[0] = Transicion("", p[1])
+        print("TTTTTString: "+  str(p[1]))  
+
+# Produccion para detectar la expresion terminal una palabra
+def p_string(p):
     "string : TkString"
-    p[0] = Atom("String: ", p[1])
-    print("String: "+ p[1])  
+    p[0] = Atom("String: ",p[1])
+    print("String: "+  str(p[1]))
 
 # Produccion para detectar la expresion terminal de un numero
 def p_number(p):
@@ -371,11 +371,13 @@ parser = yacc.yacc()
 #Clase para la creacion de nodos, con el fin de generar el arbol AST
 class Atom:
 
-    def __init__(self, type, value=None):
+    def __init__(self, type,value=None):
         self.type = type
         self.value = str(value)
+       
 
     def print_AST(self, level=0):
+
         if (self.type == "Empty"):
             AST =""
         elif(self.value == None):
@@ -383,6 +385,7 @@ class Atom:
         else:
             AST = "-"*level + self.type +self.value
         print(AST)
+      
 
     def print_AST_DQ(self, level=0):
         #res = "Estoy en ATOM DQ, valor:"+ str(self.value) 
