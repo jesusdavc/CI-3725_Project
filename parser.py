@@ -321,7 +321,10 @@ def p_expresion_print(p):
 # Produccion para detectar la expresion terminal de un identificador
 def p_expresion_sentence(p):
     '''sentence : sentence TkConcat sentence
-                | expresion
+                | readArray
+                | writeArray
+                | word
+                | number
                 | string'''
     if len(p) > 2:
         p[0] = Concat("Concat: ", p[1], p[3])
