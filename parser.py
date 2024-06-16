@@ -189,16 +189,36 @@ def p_arrow(p):
     p[0] = Arrow("Then", p[1], p[3])
     print("Arrow: "+p[1].type +","+ p[3].type)
 
+# Produccion del ! 
+def p_not(p):
+    '''not : TkNot reserved
+           | TkNot not
+           | TkNot word
+           | TkNot TkOpenPar proposition TkClosePar'''
+    
+    if (p[1] == '!'):
+        p[0] = Not("Not: ", p[2])
+        print("Not: "+p[2].type)
+    else:
+        p[0] = Not("Not: ", p[3])
+        print("Not: "+p[1].type)
+
 # Produccion para detectar condiciones bool
 def p_proposition(p):
-    '''proposition : expresion TkAnd expresion
-                   | expresion TkOr expresion
-                   | expresion TkLess expresion
-                   | expresion TkLeq expresion
-                   | expresion TkGeq expresion
-                   | expresion TkGreater expresion
-                   | expresion TkEqual expresion
-                   | expresion TkNEqual expresion'''
+    '''proposition : proposition TkAnd      proposition
+                   | proposition TkOr       proposition
+                   | proposition TkLess     proposition
+                   | proposition TkLeq      proposition
+                   | proposition TkGeq      proposition
+                   | proposition TkGreater  proposition
+                   | proposition TkEqual    proposition
+                   | proposition TkNEqual   proposition
+                   | TkOpenPar proposition TkClosePar
+                   | not
+                   | number
+                   | word
+                   | readArray
+                   | reserved'''
     
     if(len(p) > 2):
         if (p[2] == '/\\'):
@@ -225,8 +245,11 @@ def p_proposition(p):
         elif (p[2] == '!='):
             p[0] = Condition("NEqual: ", p[1], p[3])
             print("NEqual: "+p[1].type +","+ p[3].type)
+        elif(p[1] == '('):
+            p[0] = p[2]
+            print("Parentesis: "+p[2].type)
     else:
-        p[0] =p[1]
+        p[0] = p[1]
         print("Reserved: "+p[1].type)
 
 # Produccion para detectar las palabras reservadas
@@ -686,7 +709,21 @@ class WriteArray:
         pila += self.left.print_AST_DQ(level)
         pila.append(")")
         return pila
-    
+class Not:
+
+    def __init__(self, type, children):
+        self.type = type
+        self.children = children
+
+    def print_AST(self, level=0):
+        #res = "Estoy en AST FOR, el hijo izquierdo es: "+ str(self.left)
+        #print(res) 
+        #res = "Estoy en AST FOR, el hijo derecho es: "+ str(self.right)
+        #print(res)
+        ret = "-"*level + self.type
+        print(ret)
+        self.children.print_AST(level+1)
+        
 class Condition_If:
 
     def __init__(self,type, children = None,level = 0 ):
@@ -776,7 +813,6 @@ class Condition:
         print(ret)
         self.left.print_AST(level+1)
         self.right.print_AST(level+1)
-
 class Loop_For:
 
     def __init__(self, type, left=None, right=None):
