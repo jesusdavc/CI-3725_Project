@@ -12,7 +12,8 @@ if ".." not in sys.path: sys.path.insert(0,"..") # type: ignore
 
 # Precedencia de algunas expresiones de GCL
 precedence = (
-    ('right', 'TkSemicolon', 'TkGuard'),
+    ('right', 'TkSemicolon'),
+    ('right', 'TkGuard'),
     ('left', 'TkTwoPoints'),
     ('left', 'TkAnd'),
     ('left', 'TkOr'),
@@ -21,6 +22,8 @@ precedence = (
     ('left', 'TkIn'),
     ('right', 'TkTo'),
     ('right', 'TkAsig'),
+    ('left', 'TkOBracket', 'TkCBracket'),
+    ('left', 'TkOpenPar', 'TkClosePar'),
     ('left', 'TkComma'),
 )
 
@@ -38,34 +41,38 @@ def p_expresion_declare(p):
     print("declare: " + p[2].type )
 
 # Produccion para detectar la expresion las secuencias del programa
-def p_expresion_semicolon(p):
-    '''expresion : expresion TkSemicolon expresion
+def p_expresion(p):
+    '''expresion : semicolon
+                 | program
                  | print
                  | soForth
                  | concat
                  | writeArray
                  | readArray
                  | twoPoints
-                 | bucle
+                 | for
+                 | do
                  | cota
-                 | condition
-                 | booleans
-                 | bools
+                 | if
+                 | guard
+                 | proposition
+                 | arrow
                  | asig
                  | comma 
                  | space
-                 | Word
+                 | word
                  | number
-                 | String
-                 | Empty '''
+                 | reserved
+                 | string
+                 | empty '''
     
-    if len(p) > 2:
-        if (p[2] == ';'):
-            p[0] = Secuencia("Secuencia", p[1],p[3])
-            print("semicolon nivel: "+p[1].type + ";" + p[3].type)
-    else:
-        p[0] = toAtom("RA",p[1])
+    p[0] = p[1]
 
+def p_expresion_semicolon(p):
+    "semicolon : expresion TkSemicolon expresion"
+    
+    p[0] = Secuencia("Secuencia", p[1],p[3])
+    print("semicolon nivel: "+p[1].type + ";" + p[3].type)
 
 # Produccion para detectar la expresion no terminal TwoPoints
 def p_expresion_two_point(p):
@@ -73,49 +80,55 @@ def p_expresion_two_point(p):
                  | expresion TkTwoPoints reserved
                  | number TkTwoPoints expresion'''
     
-    p[0] = TwoPoints("TwoPoints: ", p[1], p[3])
+    p[0] = TwoPoints("TwoPoints", p[1], p[3])
     print("dos puntos nivel: "+p[1].type +","+ p[3].type) 
 
 # Produccion para detectar la expresion no terminal asig
 def p_expresion_asig(p):
-    '''asig : expresion TkAsig expresion
-            | expresion TkAsig number'''
+    "asig : expresion TkAsig expresion"
     
     p[0] = Asignation("Asignacion: ", p[1], p[3])
     print("asignacion nivel: "+p[1].type +","+str(p[3].type))
 
 # Produccion para detectar la expresion no terminal Comma
 def p_expresion_comma(p):
-    '''comma : expresion TkComma expresion'''
-    
-    p[0] = Comma("Comma: ", p[1], p[3])
+    "comma : expresion TkComma expresion"
+
+    p[0] = Comma("Comma", p[1], p[3])
     print("Coma nivel: "+p[1].type +","+ p[3].type) 
 
 # Produccion para detectar la expresion no terminal Concat
 def p_expresion_concat(p):
-    '''concat : expresion TkConcat expresion'''
+    "concat : expresion TkConcat expresion"
     
     p[0] = Concat("Concat: ", p[1], p[3])
     print("Concatenar nivel: "+p[1].type +","+ p[3].type) 
 
 # Produccion para detectar la expresion no terminal SoForth
 def p_expresion_so_forth(p):
-    '''soForth : number TkSoForth number'''
+    "soForth : number TkSoForth number"
 
     p[0] = TwoSoFort("TkSoForth: ", p[1], p[3])
     print(".. nivel: "+p[1].type +","+ p[3].type) 
 
 # Produccion para detectar el especio vacio en la declaracion
 def p_expresion_space_empty(p):
-    '''space : twoPoints expresion'''
-    p[0] = Space_Declare("Space: ", p[1], p[2])
+    '''space : twoPoints expresion
+             | readArray expresion'''
+    p[0] = Space_Declare("Space", p[1], p[2])
     print("space: "+p[1].type +","+ p[2].type) 
 
 # Produccion para detectar el bucle for
 def p_for(p):
-    '''bucle : TkFor cota TkArrow expresion TkRof'''
+    "for : TkFor cota TkArrow expresion TkRof"
     p[0] = Loop_For("For: ", p[2], p[4])
     print("For: "+p[2].type +","+ p[4].type) 
+
+# Produccion para detectar el bucle do
+def p_do(p):
+    "do : TkDo arrow TkOd"
+    p[0] = Loop_Do("Do: ", p[2])
+    print("Do: "+p[2].type) 
 
 # Produccion para detectar condicion In y To
 def p_expresion_cota(p):
@@ -131,62 +144,63 @@ def p_expresion_cota(p):
 
 # Produccion para detectar los if
 def p_if(p):
-    '''condition : TkIf guard TkFi'''
-    p[0] = Condition_If("If: ", p[2])
+    "if : TkIf expresion TkFi"
+    print(p)
+    p[0] = Condition_If("If", p[2])
     print("If: "+p[2].type)
 
+# Produccion que detecta las guardas
 def p_guard(p):
-    '''guard : guard TkGuard guard
-             | arrow'''
-    if (len(p) > 2):
-        p[0] = Guard("Guard", p[1], p[3])
-        print("Arrow: "+p[1].type +","+ p[3].type)
-    else:
-        p[0] = Guard("Guard", p[1])
-        print("Guard: "+p[1].type)
-
+    ''' guard : arrow TkGuard expresion'''
+    p[0] = Guard("Guard", p[1], p[3])
+    print("Guard: "+p[1].type +","+ p[3].type)
 # Produccion para detectar -->
 def p_arrow(p):
-    '''arrow : booleans TkArrow expresion'''
+    '''arrow : proposition TkArrow expresion
+             | reserved TkArrow expresion'''
 
     p[0] = Arrow("Then", p[1], p[3])
     print("Arrow: "+p[1].type +","+ p[3].type)
 
 # Produccion para detectar condiciones bool
-def p_booleans(p):
-    '''booleans : expresion TkAnd expresion
-               | expresion TkOr expresion
-               | expresion TkLess expresion
-               | expresion TkLeq expresion
-               | expresion TkGeq expresion
-               | expresion TkGreater expresion
-               | expresion TkEqual expresion
-               | expresion TkNEqual expresion'''
+def p_proposition(p):
+    '''proposition : expresion TkAnd expresion
+                   | expresion TkOr expresion
+                   | expresion TkLess expresion
+                   | expresion TkLeq expresion
+                   | expresion TkGeq expresion
+                   | expresion TkGreater expresion
+                   | expresion TkEqual expresion
+                   | expresion TkNEqual expresion'''
     
-    if (p[2] == '/\\'):
-        p[0] = Condition("And: ", p[1], p[3])
-        print("And: "+p[1].type +","+ p[3].type)
-    elif (p[2] == '\\/'):
-        p[0] = Condition("Or: ", p[1], p[3])
-        print("Or: "+p[1].type +","+ p[3].type)
-    elif (p[2] == '<'):
-        p[0] = Condition("Less: ", p[1], p[3])
-        print("Less: "+p[1].type +","+ p[3].type)
-    elif (p[2] == '<='):
-        p[0] = Condition("Leq: ", p[1], p[3])
-        print("Leq: "+p[1].type +","+ p[3].type)
-    elif (p[2] == '>='):
-        p[0] = Condition("Geq: ", p[1], p[3])
-        print("Geq: "+p[1].type +","+ p[3].type)
-    elif (p[2] == '>'):
-        p[0] = Condition("Greater: ", p[1], p[3])
-        print("Greater: "+p[1].type +","+ p[3].type)
-    elif (p[2] == '=='):
-        p[0] = Condition("Equal: ", p[1], p[3])
-        print("Equal: "+p[1].type +","+ p[3].type)
+    if(len(p) > 2):
+        if (p[2] == '/\\'):
+            p[0] = Condition("And: ", p[1], p[3])
+            print("And: "+p[1].type +","+ p[3].type)
+        elif (p[2] == '\\/'):
+            p[0] = Condition("Or: ", p[1], p[3])
+            print("Or: "+p[1].type +","+ p[3].type)
+        elif (p[2] == '<'):
+            p[0] = Condition("Less: ", p[1], p[3])
+            print("Less: "+p[1].type +","+ p[3].type)
+        elif (p[2] == '<='):
+            p[0] = Condition("Leq: ", p[1], p[3])
+            print("Leq: "+p[1].type +","+ p[3].type)
+        elif (p[2] == '>='):
+            p[0] = Condition("Geq: ", p[1], p[3])
+            print("Geq: "+p[1].type +","+ p[3].type)
+        elif (p[2] == '>'):
+            p[0] = Condition("Greater: ", p[1], p[3])
+            print("Greater: "+p[1].type +","+ p[3].type)
+        elif (p[2] == '=='):
+            p[0] = Condition("Equal: ", p[1], p[3])
+            print("Equal: "+p[1].type +","+ p[3].type)
+        elif (p[2] == '!='):
+            p[0] = Condition("NEqual: ", p[1], p[3])
+            print("NEqual: "+p[1].type +","+ p[3].type)
     else:
-        p[0] = Condition("NEqual: ", p[1], p[3])
-        print("NEqual: "+p[1].type +","+ p[3].type)
+        p[0] =p[1]
+        print("Reserved: "+p[1].type)
 
 # Produccion para detectar las palabras reservadas
 def p_reserved(p):
@@ -194,46 +208,31 @@ def p_reserved(p):
                 | TkBool
                 | TkTrue
                 | TkFalse
-                | TkArray readArray'''
+                | TkArray'''
     
-    if (len(p) > 2):
-        p[0] = Array("Array", p[1], p[2])
+    if (p[1] == 'array'):
+        p[0] = Reserved("array", value = p[1])
         print("Array: "+ p[1])
     elif (p[1] == 'int'):
-        p[0] = Reserved("TkInt: ", value = p[1])
+        p[0] = Reserved("int", value = p[1])
         print("Reservado TkInt: "+ p[1])
     elif (p[1] == 'true'):
-        p[0] = Reserved("TkTrue: ", value = p[1])
+        p[0] = Reserved("Literal:", value = p[1])
         print("Reservado true: "+ p[1])
     elif (p[1] == 'false'):
-        p[0] = Reserved("TkFalse: ", value = p[1])
+        p[0] = Reserved("Literal:", value = p[1])
         print("Reservado false: "+ p[1])
     else:
-        p[0] = Reserved("TkBool: ", value = p[1])
+        p[0] = Reserved("bool", value = p[1])
         print("Reservado bool: "+ p[1])
-
-def p_bool(p):
-    '''bools : TkTrue
-             | TkFalse'''
-    
-    if (p[1] == 'true'):
-        p[0] = Reserved("TkTrue: ", value = p[1])
-        print("Reservado true: "+ p[1])
-    else:
-        p[0] = Reserved("TkFalse: ", value = p[1])
-        print("Reservado false: "+ p[1])
 
 # Produccion para leer un array
 def p_read_array(p):
-    '''readArray : expresion TkOBracket expresion TkCBracket
-                 | TkOBracket expresion TkCBracket'''
+    '''readArray : expresion TkOBracket expresion TkCBracket'''
     
-    if (len(p) > 4):
-        p[0] = ReadArray("ReadArray", p[1], p[3])
-        print("ReadArray x[]: "+ str(p[1].type) +".."+ str(p[3].type))
-    else:
-        p[0] = ReadArray("ReadArray", p[2])
-        print("ReadArray []: "+ str(p[2].type) )
+    p[0] = ReadArray("ReadArray", p[1], p[3])
+    print("ReadArray x[]: "+ str(p[1].type) +".."+ str(p[3].type))
+
 
 # Produccion para escribir un array
 def p_write_array(p):
@@ -241,39 +240,39 @@ def p_write_array(p):
                   | TkOpenPar expresion TkClosePar'''
     
     if (len(p) > 4):
-        p[0] = ReadArray("WriteArray", p[1], p[3])
+        p[0] = WriteArray("WriteArray", p[1], p[3])
         print("Write x(): "+ str(p[1].type) +".."+ str(p[3].type))
     else:
-        p[0] = ReadArray("WriteArray", p[2])
+        p[0] = WriteArray("WriteArray", p[2])
         print("Write (): "+ str(p[2].type) )
 
 # Produccion para detectar un print
 def p_expresion_print(p):
-    '''print : TkPrint expresion'''
-    p[0] = toAtom("Print", p[2])
+    "print : TkPrint expresion"
+    p[0] = Print("Print", p[2])
     print("Print: "+ p[2].type)
 
 # Produccion para detectar la expresion terminal de un numero
 def p_number(p):
-    '''number : TkNum'''
+    "number : TkNum"
     p[0] = Atom("Number: ",p[1])
     print("Numero: "+  str(p[1]))
 
 # Produccion para detectar la expresion terminal de un identificador
 def p_expresion_id(p):
-    '''Word : TkId'''
+    "word : TkId"
     p[0] = Atom("Ident: ", p[1])
     print("Ident: "+ p[1])
 
 # Produccion para detectar la expresion terminal de un identificador
 def p_expresion_string(p):
-    '''String : TkString'''
+    "string : TkString"
     p[0] = Atom("String: ", p[1])
     print("String: "+ p[1])
 
 # Produccion para detectar la expresion terminal vacia o letra
 def p_expresion_empty(p):
-    '''Empty : '''
+    "empty :" 
     p[0] = Atom("Empty" )
     print("Vacio: "+ p[0].type) 
 
@@ -284,6 +283,7 @@ def p_coment(p):
 
 # Manejador de errores 
 def p_error(p):
+    print(p)
     print("Syntax error in input!")
     pass
 
@@ -306,7 +306,7 @@ class Atom:
             AST = "-"*level + self.type +self.value
         print(AST)
 
-    def print_AST_DQ(self):
+    def print_AST_DQ(self, level=0):
         #res = "Estoy en ATOM DQ, valor:"+ str(self.value) 
         #print(res)
         pila = deque()
@@ -352,43 +352,33 @@ class Secuencia:
         pila = deque()
         ret = "-"*level + self.type 
         print(ret)
-        #print("Este es el tipo del hijo:"+str(self.type))
-        #print("Este es el tipo del hijo derecho :"+str(self.right.type))
-        #print("Este es el tipo del hijo izquierdo :"+str(self.left.type))
-        if (self.right.type == "Secuencia"):
-            pila.append(self.left)
-            #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
+        #status(self)
+        pila.append(self.left)
+        #print(pila)
+        #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
+        if(self.right.type == "Secuencia"):
+            #print("Resulto ser secuencia")
             pila += self.right.print_AST_DQ(level+1)
-            #print(len(pila))
-            #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
-            while(len(pila)>0):
-                level = len(pila)
-                x = pila.popleft()
-                if(x.value == None ):
-                    continue
-                else:
-                    x.print_AST(level+1)
         else:
-            #print("Pase por aqui")
-            
-            self.left.print_AST(level+1)
-            self.right.print_AST(level+1)
+            pila.append(self.right)
+        #print(len(pila))
+        #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
+        #for x in pila: print(x.type)
+        #print(pila)
+        while(len(pila)>0):
+            x = pila.popleft()
+            x.print_AST(level+1)
 
     def print_AST_DQ(self,level=0):
         pila = deque()
         ret = "-"*level + self.type 
         print(ret)
-        #print("Este es el tipo del hijo derecho DQ:"+str(self.right.type))
-        #print("Este es el tipo del hijo izquierdo DQ:"+str(self.left.type))
-        if (self.left.type == "Secuencia"):
-            #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
-            pila += self.left.print_AST_DQ(level+1)
-        else:
-            pila.append(self.left)
-
+        pila.append(self.left)
+        #print("Este es el tipo del hijo derecho SECUENCIA DQ :"+str(self.right.type))
+        #print("Este es el tipo del hijo izquierdo SECUENCIA DQ:"+str(self.left.type))
         if (self.right.type == "Secuencia"):
             #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
-            pila += self.left.print_AST_DQ(level+1)
+            pila += self.right.print_AST_DQ(level+1)
         else:
             pila.append(self.right)
         #print("pila en el nivel DQ "+ str(self.type)+": "+ str(pila))
@@ -402,12 +392,19 @@ class TwoPoints:
         self.right = right
 
     def print_AST(self, level=0):
-        #res = "Estoy en AST Twopoint, el hijo izquierdo es: "+ str(self.left.value)
-        #print(res) 
-        #res = "Estoy en AST Twopoint, el hijo derecho es: "+ self.right.type
-        #print(res)
-        if (self.right.value == "int" or self.right.value == "bool" 
-            or self.right.type == "Array"): 
+        #status(self)
+        if (self.right.type == "Space"):
+            #print("Estoy en AST TwoPoint QD")
+            pila = deque()
+            AST = "-"*level
+            pila += self.left.print_AST_DQ()
+            pila.append(":")
+            pila += self.right.left.print_AST_DQ()
+            AST += " ".join(pila)
+            print(AST)
+            self.right.right.print_AST(level)
+        elif (self.right.value == "int" or self.right.value == "bool" 
+            or self.right.value == "array"): 
             #print("Estoy en AST TwoPoint QD")
             pila = deque()
             AST = "-"*level
@@ -417,11 +414,21 @@ class TwoPoints:
             AST += " ".join(pila)
             print(AST)
         else:
-            AST = "-"*level + self.type
+            #print("ESTOY EN ELSE")
+            AST = "-"*level+self.type
             print(AST)
             self.left.print_AST(level+1)
             self.right.print_AST(level+1)
 
+    def print_AST_DQ(self, level=0):
+        #status(self)
+        #print("Estoy en Twopoints")
+        pila = deque()
+        pila += self.left.print_AST_DQ()
+        pila.append(":")
+        pila += self.right.print_AST_DQ()
+        #print(pila)
+        return pila
 
 class Asignation:
 
@@ -433,13 +440,21 @@ class Asignation:
 
     def print_AST(self, level=0):
         AST = "-"*level + self.type
-        #print("Estoy en Asignacion con valores I,D:")
-        #print(self.left.type)
-        #print(self.right.type)
-        #print(self.right.value)
+        #status(self)
         print(AST)
         self.left.print_AST(level+1)
         self.right.print_AST(level+1)
+
+    def print_AST_DQ(self, level=0):
+        #status(self)
+        pila = deque()
+        pila.append(self.left)
+        if (self.right.type == "Secuencia"):
+            #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
+            pila += self.right.print_AST_DQ(level+1)
+        #print("pila en el nivel DQ "+ str(self.type)+": "+ str(pila))
+        return pila
+
 
 class Space_Declare:
 
@@ -449,8 +464,25 @@ class Space_Declare:
         self.right = right
 
     def print_AST(self, level=0):
-        self.left.print_AST(level+1)
-        self.right.print_AST(level+1)
+        
+        #status(self)
+        self.left.print_AST(level)
+        if (self.right.type == "Secuencia"):
+            self.right.print_AST(level+1)
+        else:
+            self.right.print_AST(level)
+
+    def print_AST_DQ(self,level=0):
+        pila = deque()
+        #self.left.level = level
+        pila.append(self.left)
+        
+        #status(self)
+        if (self.right.type == "Secuencia"):
+            #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
+            pila += self.right.print_AST_DQ(level+1)
+        #print("pila en el nivel DQ "+ str(self.type)+": "+ str(pila))
+        return pila
 
 class Comma:
 
@@ -468,6 +500,7 @@ class Comma:
     def print_AST_DQ(self, level=0):
         #print("Estoy en AST ARRAY DQ")
         #print(self.value)
+        #status(self)
         pila = deque()
         pila += self.left.print_AST_DQ()
         pila.append(",")
@@ -491,11 +524,43 @@ class Concat:
         #print("Estoy en AST ARRAY DQ")
         #print(self.value)
         pila = deque()
-        pila += self.left.print_AST_DQ()
+        pila += self.left.print_AST_DQ(level)
         pila.append(".")
-        pila += self.right.print_AST_DQ()
+        pila += self.right.print_AST_DQ(level)
         return pila 
-       
+    
+class Print:  
+    def __init__(self, type, left=None, right=None):
+        self.type = type
+        self.left = left
+        self.right = right
+
+    def print_AST(self, level=0):
+        if self is not None:
+            #status(self)
+            if(self.right is not None):
+                pila = deque()
+                pila += self.left.print_AST_DQ(level+1)
+                level+= len(pila)
+                AST = "-"*level + self.type
+                print(AST)
+                print(pila)
+                while(len(pila)>0):
+                    x = pila.popleft()
+                    x.print_AST(level+1)
+            else:
+                AST = "-"*level + self.type
+                print(AST)
+                self.left.print_AST(level+1)
+
+    def print_AST_DQ(self, level=0):
+        pila = deque()
+        if self.left is not None:
+            pila += self.left.print_AST_DQ(level)
+        if self.right is not None:
+            pila += self.right.print_AST_DQ(level)
+        return pila  
+      
 class Array:
 
     def __init__(self, type, value=0, right=None):
@@ -508,7 +573,7 @@ class Array:
         #print(self.value)
         pila = deque()
         pila.append(self.value)
-        pila += self.right.print_AST_DQ()
+        pila += self.right.print_AST_DQ(level)
         return pila
 
     
@@ -520,18 +585,27 @@ class ReadArray:
         self.right = right
 
     def print_AST(self, level=0):
-        #print("Estoy en AST READ")
-        ret = "-"*level + self.type+":"
-        print(ret)
-        self.left.print_AST(level+1)
-        self.right.print_AST(level+1)
+        if (self.left.type == "TwoPoints"):
+            ret = "-"*level
+            status(self)
+            ret+= " ".join(self.print_AST_DQ())
+            print(ret)
+        else:
+            ret = "-"*level + self.type
+            print(ret)
+            #print("Estoy en AST READ")
+            #status(self)
+            self.left.print_AST(level+1)
+            self.right.print_AST(level+1)
 
-    def print_AST_DQ(self):
+    def print_AST_DQ(self, level=0):
         #print("Estoy en AST DQ READ")
         pila = deque()
-        pila.append("[")
         pila += self.left.print_AST_DQ()
+        pila.append("[")
+        pila += self.right.print_AST_DQ()
         pila.append("]")
+        #print(pila)
         return pila
     
 class WriteArray:
@@ -542,22 +616,22 @@ class WriteArray:
         self.right = right
 
     def print_AST(self, level=0):
+        #status(self)
         #print("Estoy en AST READ")
         ret = "-"*level + self.type+":"
         print(ret)
         self.left.print_AST(level+1)
         self.right.print_AST(level+1)
 
-    def print_AST_DQ(self):
+    def print_AST_DQ(self, level=0):
         #print("Estoy en AST DQ READ")
         pila = deque()
         pila.append("(")
-        pila += self.left.print_AST_DQ()
+        pila += self.left.print_AST_DQ(level)
         pila.append(")")
         return pila
     
 class Condition_If:
-
 
     def __init__(self,type, children = None,level = 0 ):
         self.type = type
@@ -568,6 +642,7 @@ class Condition_If:
         ret = "-"*level + self.type 
         print(ret)
         self.children.print_AST(level+1)
+    
 
 class Guard:
 
@@ -575,44 +650,38 @@ class Guard:
         self.type = type
         self.left = left
         self.right = right
-        #self.value = value
 
     def print_AST(self, level=0):
         pila = deque()
-        #print("Este es el tipo del hijo:"+str(self.right.type))
-        #print("Este es el tipo del hijo derecho :"+str(self.right.type))
-        #print("Este es el tipo del hijo izquierdo :"+str(self.left.type))
-        if (self.right != None and self.right.type == "Guard" ):
-            pila.append(self.left)
-            #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
+        ret = "-"*level + self.type 
+        print(ret)
+        #status(self)
+        pila.append(self.left)
+        #print(pila)
+        #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
+        if(self.right.type == "Guard"):
+            #print("Resulto ser secuencia")
             pila += self.right.print_AST_DQ(level+1)
-            #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
-            #print(len(pila))
-            for x in pila:
-                if(x == None):
-                    continue
-                x.print_AST(level+1)
         else:
-            if (self.left != None):
-                self.left.print_AST(level+1)
-            if (self.right != None):
-                self.right.print_AST(level+1)
+            pila.append(self.right)
+        #print(len(pila))
+        #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
+        #for x in pila: print(x.type)
+            
+        while(len(pila)>0):
+            x = pila.popleft()
+            x.print_AST(level+1)
 
     def print_AST_DQ(self,level=0):
         pila = deque()
         ret = "-"*level + self.type 
         print(ret)
-        #print("Este es el tipo del hijo derecho DQ:"+str(self.right.type))
-        #print("Este es el tipo del hijo izquierdo DQ:"+str(self.left.type))
-        if (self.left != None and self.left.type == "Guard"):
+        pila.append(self.left)
+        #print("Este es el tipo del hijo derecho SECUENCIA DQ :"+str(self.right.type))
+        #print("Este es el tipo del hijo izquierdo SECUENCIA DQ:"+str(self.left.type))
+        if (self.right.type == "Guard"):
             #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
-            pila += self.left.print_AST_DQ(level+1)
-        else:
-            pila.append(self.left)
-
-        if (self.right != None and self.right.type == "Guard"):
-            #print("pila en el nivel "+ str(self.type)+": "+ str(pila))
-            pila += self.left.print_AST_DQ(level+1)
+            pila += self.right.print_AST_DQ(level+1)
         else:
             pila.append(self.right)
         #print("pila en el nivel DQ "+ str(self.type)+": "+ str(pila))
@@ -669,6 +738,22 @@ class Loop_For:
         self.left.print_AST(level+1)
         self.right.print_AST(level+1)
 
+class Loop_Do:
+
+    def __init__(self, type, left=None, right=None):
+        self.type = type
+        self.left = left
+        self.right = right
+
+    def print_AST(self, level=0):
+        #res = "Estoy en AST FOR, el hijo izquierdo es: "+ str(self.left)
+        #print(res) 
+        #res = "Estoy en AST FOR, el hijo derecho es: "+ str(self.right)
+        #print(res)
+        ret = "-"*level + self.type
+        print(ret)
+        self.left.print_AST(level+1)
+
   
 class TwoSoFort:
 
@@ -684,10 +769,12 @@ class TwoSoFort:
         self.right.print_AST(level+1)
 
     def print_AST_DQ(self):
+        #status(self)
         pila = deque()
         pila += self.left.print_AST_DQ()
         pila.append("..")
         pila += self.right.print_AST_DQ()
+        #print(pila)
         return pila
 
 class Declare:
@@ -714,7 +801,7 @@ class Block:
         print(ret)
         self.children.print_AST(level+1)
 
-class toAtom:
+class Transicion:
 
     def __init__(self, type, children = None,level = 0, value=0):
         self.type = type
@@ -723,11 +810,14 @@ class toAtom:
         self.value = value
 
     def print_AST(self, level=0):
-        #print("Estoy en toAtom con type:")
+        #print("Estoy en Transicio con type:")
         #print(self.type)
+        #print("Estoy en Transicio con hijo type:")
+        #print(self.children.type)
         if(self.type == "Print"):
             AST = "-"*level + self.type
             print(AST)
+
             self.children.print_AST(level+1)
         else:
             self.children.print_AST(level)
@@ -735,6 +825,13 @@ class toAtom:
     def print_AST_DQ(self):
         return self.children.print_AST_DQ()
     
+def status(x):
+        print("----------------------------")
+        print(x.type)
+        print("Este es el tipo del hijo izquierdo :"+str(x.left.type))
+        print("Este es el tipo del hijo derecho :"+str(x.right.type))
+        #print(x.level)
+        print("----------------------------")
 while True:
     f = open(sys.argv[1], "r")   
     assert f.name.endswith('.gcl') # Verifica que sea un .gcl
