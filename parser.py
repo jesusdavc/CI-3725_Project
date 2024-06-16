@@ -22,6 +22,9 @@ precedence = (
     ('left', 'TkIn'),
     ('right', 'TkTo'),
     ('right', 'TkAsig'),
+    ('left', 'UMINUS'),
+    ('left', 'TkMult'),
+    ('left', 'TkPlus', 'TkMinus'),
     ('left', 'TkOBracket', 'TkCBracket'),
     ('left', 'TkOpenPar', 'TkClosePar'),
     ('left', 'TkComma'),
@@ -50,6 +53,8 @@ def p_expresion(p):
                  | writeArray
                  | readArray
                  | twoPoints
+                 | aritmetic
+                 | negative
                  | for
                  | do
                  | cota
@@ -117,6 +122,28 @@ def p_expresion_space_empty(p):
              | readArray expresion'''
     p[0] = Space_Declare("Space", p[1], p[2])
     print("space: "+p[1].type +","+ p[2].type) 
+
+# Produccion para detectar aritmetica
+def p_expresion_aritmetic(p):
+    '''aritmetic : expresion TkPlus expresion
+                | expresion TkMinus expresion
+                | expresion TkMult expresion'''
+    
+    if(p[2] == '+'):
+        p[0] = Aritmetic("Plus", p[1], p[3])
+    elif(p[2] == '-'):
+        p[0] = Aritmetic("Minus", p[1], p[3])
+    else:
+        p[0] = Aritmetic("Mult", p[1], p[3])
+    
+    print("Aritmetica: "+p[1].type +","+ p[3].type)
+
+# Produccion para detectar un valor negativo
+def p_expresion_uminus(p):
+    '''negative : TkMinus number %prec UMINUS
+                | TkMinus word %prec UMINUS
+                | TkMinus TkOpenPar expresion TkClosePar %prec UMINUS'''
+    p[0] = Aritmetic("UMINUS",p[2])
 
 # Produccion para detectar el bucle for
 def p_for(p):
@@ -208,7 +235,8 @@ def p_reserved(p):
                 | TkBool
                 | TkTrue
                 | TkFalse
-                | TkArray'''
+                | TkArray
+                | TkSkip'''
     
     if (p[1] == 'array'):
         p[0] = Reserved("array", value = p[1])
@@ -527,8 +555,36 @@ class Concat:
         pila += self.left.print_AST_DQ(level)
         pila.append(".")
         pila += self.right.print_AST_DQ(level)
-        return pila 
-    
+        return pila
+     
+class Aritmetic:
+
+    def __init__(self, type, left=None, right=None):
+        self.type = type
+        self.left = left
+        self.right = right
+
+    def print_AST(self, level=0):
+        if (self.type == "UMINUS"):
+            AST = "-"*level + 'Minus'
+            print(AST)
+            self.left.print_AST(level+1)
+        else:
+            AST = "-"*level + self.type
+            print(AST)
+            self.left.print_AST(level+1)
+            self.right.print_AST(level+1)
+
+    def print_AST_DQ(self, level=0):
+        #print("Estoy en AST ARRAY DQ")
+        #print(self.value)
+        #status(self)
+        pila = deque()
+        pila += self.left.print_AST_DQ()
+        pila.append(",")
+        pila += self.right.print_AST_DQ()
+        return pila
+  
 class Print:  
     def __init__(self, type, left=None, right=None):
         self.type = type
