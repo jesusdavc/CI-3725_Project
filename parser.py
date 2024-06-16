@@ -12,27 +12,37 @@ if ".." not in sys.path: sys.path.insert(0,"..") # type: ignore
 
 # Precedencia de algunas expresiones de GCL
 precedence = (
-    ('right', 'TkSemicolon'),
-    ('right', 'TkGuard'),
+    ('left', 'TkSemicolon'),
+    ('left', 'TkAsig'),
+    ('left', 'TkNot'),
     ('left', 'TkTwoPoints'),
-    ('left', 'TkAnd'),
-    ('left', 'TkOr'),
-    ('left', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater', 'TkEqual', 'TkNEqual'),
-    ('left', 'TkConcat'),
-    ('left', 'TkIn'),
-    ('right', 'TkTo'),
-    ('right', 'TkAsig'),
-    ('left', 'UMINUS'),
-    ('left', 'TkMult'),
     ('left', 'TkPlus', 'TkMinus'),
+    ('left', 'TkMult'),
+    ('left', 'UMINUS'),
+    ('left', 'TkEqual', 'TkNEqual'),
+    ('left', 'TkComma'),
+    ('left', 'TkFor'),
+    ('left', 'TkDo'),
+    ('left', 'TkIf'),
+    ('left', 'TkGuard'),
+    ('left', 'TkArrow'),
+    ('left', 'TkIn'),
+    ('left', 'TkTo'),
+    ('left', 'TkAnd', 'TkOr'),
+    ('left', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
     ('left', 'TkOBracket', 'TkCBracket'),
     ('left', 'TkOpenPar', 'TkClosePar'),
-    ('left', 'TkComma'),
+    ('left', 'TkSoForth'),
+    ('left', 'TkPrint'),
+    ('left', 'TkString'),
+    ('left', 'TkConcat'),
+    ('left', 'TkId', 'TkNum'),
 )
 
 # Produccion para detectar un programa en GCL
 def p_program(p):
-    "program : TkOBlock declare TkCBlock"
+    '''program : TkOBlock declare TkCBlock  
+               | TkOBlock print TkCBlock'''
     p[0] = Block("Block", p[2], 0)
     print("block: "+ p[2].type)
 
@@ -46,82 +56,58 @@ def p_expresion_declare(p):
 # Produccion para detectar la expresion las secuencias del programa
 def p_expresion(p):
     '''expresion : semicolon
-                 | program
-                 | print
-                 | soForth
-                 | concat
-                 | writeArray
-                 | readArray
+                 | asig
+                 | negative
                  | twoPoints
                  | aritmetic
-                 | negative
+                 | comma
+                 | space
                  | for
                  | do
-                 | cota
                  | if
-                 | guard
-                 | proposition
-                 | arrow
-                 | asig
-                 | comma 
-                 | space
-                 | word
-                 | number
-                 | reserved
+                 | print
                  | string
-                 | empty '''
+                 | concat
+                 | word
+                 | proposition
+                 | readArray
+                 | writeArray
+                 | soForth
+                 | program
+                 | empty'''
     
     p[0] = p[1]
 
+def p_expresion_space_empty(p):
+    '''space : twoPoints expresion
+             | twoPoints empty
+             | readArray expresion
+             | twoPoints print
+             | readArray print'''
+    p[0] = Space_Declare("Space", p[1], p[2])
+    print("space: "+p[1].type +","+ p[2].type) 
+
 def p_expresion_semicolon(p):
-    "semicolon : expresion TkSemicolon expresion"
+    '''semicolon : expresion TkSemicolon expresion
+                 | print TkSemicolon expresion
+                 | expresion TkSemicolon print''' 
     
     p[0] = Secuencia("Secuencia", p[1],p[3])
     print("semicolon nivel: "+p[1].type + ";" + p[3].type)
 
-# Produccion para detectar la expresion no terminal TwoPoints
-def p_expresion_two_point(p):
-    '''twoPoints : expresion TkTwoPoints expresion
-                 | expresion TkTwoPoints reserved
-                 | number TkTwoPoints expresion'''
-    
-    p[0] = TwoPoints("TwoPoints", p[1], p[3])
-    print("dos puntos nivel: "+p[1].type +","+ p[3].type) 
-
-# Produccion para detectar la expresion no terminal asig
 def p_expresion_asig(p):
-    "asig : expresion TkAsig expresion"
+    '''asig : expresion TkAsig expresion
+            | expresion TkAsig reserved'''
     
     p[0] = Asignation("Asignacion: ", p[1], p[3])
     print("asignacion nivel: "+p[1].type +","+str(p[3].type))
 
-# Produccion para detectar la expresion no terminal Comma
-def p_expresion_comma(p):
-    "comma : expresion TkComma expresion"
-
-    p[0] = Comma("Comma", p[1], p[3])
-    print("Coma nivel: "+p[1].type +","+ p[3].type) 
-
-# Produccion para detectar la expresion no terminal Concat
-def p_expresion_concat(p):
-    "concat : expresion TkConcat expresion"
-    
-    p[0] = Concat("Concat: ", p[1], p[3])
-    print("Concatenar nivel: "+p[1].type +","+ p[3].type) 
-
-# Produccion para detectar la expresion no terminal SoForth
-def p_expresion_so_forth(p):
-    "soForth : number TkSoForth number"
-
-    p[0] = TwoSoFort("TkSoForth: ", p[1], p[3])
-    print(".. nivel: "+p[1].type +","+ p[3].type) 
-
-# Produccion para detectar el especio vacio en la declaracion
-def p_expresion_space_empty(p):
-    '''space : twoPoints expresion
-             | readArray expresion'''
-    p[0] = Space_Declare("Space", p[1], p[2])
-    print("space: "+p[1].type +","+ p[2].type) 
+# Produccion para detectar un valor negativo
+def p_expresion_uminus(p):
+    '''negative : TkMinus number %prec UMINUS
+                | TkMinus word %prec UMINUS
+                | TkMinus TkOpenPar aritmetic TkClosePar %prec UMINUS'''
+    p[0] = Aritmetic("UMINUS",p[2])
 
 # Produccion para detectar aritmetica
 def p_expresion_aritmetic(p):
@@ -138,61 +124,49 @@ def p_expresion_aritmetic(p):
     
     print("Aritmetica: "+p[1].type +","+ p[3].type)
 
-# Produccion para detectar un valor negativo
-def p_expresion_uminus(p):
-    '''negative : TkMinus number %prec UMINUS
-                | TkMinus word %prec UMINUS
-                | TkMinus TkOpenPar expresion TkClosePar %prec UMINUS'''
-    p[0] = Aritmetic("UMINUS",p[2])
-
-# Produccion para detectar el bucle for
-def p_for(p):
-    "for : TkFor cota TkArrow expresion TkRof"
-    p[0] = Loop_For("For: ", p[2], p[4])
-    print("For: "+p[2].type +","+ p[4].type) 
-
-# Produccion para detectar el bucle do
-def p_do(p):
-    "do : TkDo arrow TkOd"
-    p[0] = Loop_Do("Do: ", p[2])
-    print("Do: "+p[2].type) 
-
-# Produccion para detectar condicion In y To
-def p_expresion_cota(p):
-    '''cota : expresion TkIn expresion
-            | expresion TkTo expresion'''
+# Produccion para detectar la expresion no terminal TwoPoints
+def p_expresion_two_point(p):
+    '''twoPoints : expresion TkTwoPoints expresion
+                 | expresion TkTwoPoints reserved
+                 | number TkTwoPoints expresion'''
     
-    if (p[2] == 'in'):
-        p[0] = Loop_For("In ", p[1], p[3])
-        print("In: "+p[1].type +","+ p[3].type) 
+    p[0] = TwoPoints("TwoPoints", p[1], p[3])
+    print("dos puntos nivel: "+p[1].type +","+ p[3].type)
+
+# Produccion para detectar la expresion no terminal Comma
+def p_expresion_comma(p):
+    "comma : expresion TkComma expresion"
+
+    p[0] = Comma("Comma", p[1], p[3])
+    print("Coma nivel: "+p[1].type +","+ p[3].type) 
+
+def p_reserved(p):
+    '''reserved : TkInt
+                | TkBool
+                | TkTrue
+                | TkFalse
+                | TkArray
+                | TkSkip'''
+    
+    if (p[1] == 'array'):
+        p[0] = Reserved("array", value = p[1])
+        print("Array: "+ p[1])
+    elif (p[1] == 'int'):
+        p[0] = Reserved("int", value = p[1])
+        print("Reservado TkInt: "+ p[1])
+    elif (p[1] == 'true'):
+        p[0] = Reserved("Literal:", value = p[1])
+        print("Reservado true: "+ p[1])
+    elif (p[1] == 'false'):
+        p[0] = Reserved("Literal:", value = p[1])
+        print("Reservado false: "+ p[1])
     else:
-        p[0] = Loop_For("To ", p[1], p[3])
-        print("To: "+p[1].type +","+ p[3].type)
-
-# Produccion para detectar los if
-def p_if(p):
-    "if : TkIf expresion TkFi"
-    print(p)
-    p[0] = Condition_If("If", p[2])
-    print("If: "+p[2].type)
-
-# Produccion que detecta las guardas
-def p_guard(p):
-    ''' guard : arrow TkGuard expresion'''
-    p[0] = Guard("Guard", p[1], p[3])
-    print("Guard: "+p[1].type +","+ p[3].type)
-# Produccion para detectar -->
-def p_arrow(p):
-    '''arrow : proposition TkArrow expresion
-             | reserved TkArrow expresion'''
-
-    p[0] = Arrow("Then", p[1], p[3])
-    print("Arrow: "+p[1].type +","+ p[3].type)
+        p[0] = Reserved("Literal:", value = p[1])
+        print("Reservado bool: "+ p[1])
 
 # Produccion del ! 
 def p_not(p):
-    '''not : TkNot reserved
-           | TkNot not
+    '''not : TkNot not
            | TkNot word
            | TkNot TkOpenPar proposition TkClosePar'''
     
@@ -216,9 +190,9 @@ def p_proposition(p):
                    | TkOpenPar proposition TkClosePar
                    | not
                    | number
-                   | word
                    | readArray
-                   | reserved'''
+                   | reserved
+                   | word'''
     
     if(len(p) > 2):
         if (p[2] == '/\\'):
@@ -252,42 +226,26 @@ def p_proposition(p):
         p[0] = p[1]
         print("Reserved: "+p[1].type)
 
-# Produccion para detectar las palabras reservadas
-def p_reserved(p):
-    '''reserved : TkInt
-                | TkBool
-                | TkTrue
-                | TkFalse
-                | TkArray
-                | TkSkip'''
-    
-    if (p[1] == 'array'):
-        p[0] = Reserved("array", value = p[1])
-        print("Array: "+ p[1])
-    elif (p[1] == 'int'):
-        p[0] = Reserved("int", value = p[1])
-        print("Reservado TkInt: "+ p[1])
-    elif (p[1] == 'true'):
-        p[0] = Reserved("Literal:", value = p[1])
-        print("Reservado true: "+ p[1])
-    elif (p[1] == 'false'):
-        p[0] = Reserved("Literal:", value = p[1])
-        print("Reservado false: "+ p[1])
-    else:
-        p[0] = Reserved("bool", value = p[1])
-        print("Reservado bool: "+ p[1])
-
 # Produccion para leer un array
 def p_read_array(p):
-    '''readArray : expresion TkOBracket expresion TkCBracket'''
+    '''readArray : reserved TkOBracket soForth TkCBracket
+                 | reserved TkOBracket number TkCBracket
+                 | word TkOBracket word TkCBracket
+                 | word TkOBracket number TkCBracket
+                 | word TkOBracket aritmetic TkCBracket
+                 | writeArray TkOBracket number TkCBracket
+                 | writeArray TkOBracket word TkCBracket
+                 | writeArray TkOBracket aritmetic TkCBracket
+                 | readArray TkOBracket number TkCBracket
+                 | readArray TkOBracket word TkCBracket
+                 | readArray TkOBracket aritmetic TkCBracket'''
     
     p[0] = ReadArray("ReadArray", p[1], p[3])
     print("ReadArray x[]: "+ str(p[1].type) +".."+ str(p[3].type))
 
-
 # Produccion para escribir un array
 def p_write_array(p):
-    '''writeArray : expresion TkOpenPar expresion TkClosePar
+    '''writeArray : word TkOpenPar expresion TkClosePar
                   | TkOpenPar expresion TkClosePar'''
     
     if (len(p) > 4):
@@ -297,11 +255,86 @@ def p_write_array(p):
         p[0] = WriteArray("WriteArray", p[2])
         print("Write (): "+ str(p[2].type) )
 
+# Produccion para detectar la expresion no terminal SoForth
+def p_expresion_so_forth(p):
+    "soForth : number TkSoForth number"
+
+    p[0] = TwoSoFort("TkSoForth: ", p[1], p[3])
+    print(".. nivel: "+p[1].type +","+ p[3].type) 
+
+# Produccion para detectar el bucle for   
+def p_for(p):
+    "for : TkFor in TkArrow expresion TkRof"
+    p[0] = Loop_For("For: ", p[2], p[4])
+    print("For: "+p[2].type +","+ p[4].type) 
+
+# Produccion para detectar condicion In
+def p_expresion_in(p):
+    '''in : number TkIn to
+          | word TkIn to
+          | readArray TkIn to '''
+
+    p[0] = Loop_For("In ", p[1], p[3])
+    print("In: "+p[1].type +","+ p[3].type) 
+
+# Produccion para detectar condicion To
+def p_expresion_to(p):
+    '''to :  expresion TkTo expresion'''
+    
+    p[0] = Loop_For("To ", p[1], p[3])
+    print("To: "+p[1].type +","+ p[3].type)
+    
+# Produccion para detectar el bucle do
+def p_do(p):
+    "do : TkDo guard TkOd"
+    p[0] = Loop_Do("Do: ", p[2])
+    print("Do: "+p[2].type) 
+
+# Produccion para detectar el if
+def p_if(p):
+    "if : TkIf guard TkFi"
+    print(p)
+    p[0] = Condition_If("If", p[2])
+    print("If: "+p[2].type)
+
+# Produccion que detecta las guardas
+def p_guard(p):
+    ''' guard : arrow TkGuard guard
+              | arrow'''
+    if(len(p) > 2):
+        p[0] = Guard("Guard", p[1], p[3])
+        print("Guard: "+p[1].type +","+ p[3].type)
+    else:
+        p[0] = p[1]
+        print("Guard: "+p[1].type)
+
+# Produccion para detectar -->
+def p_arrow(p):
+    '''arrow : proposition TkArrow expresion
+             | reserved TkArrow expresion'''
+
+    p[0] = Arrow("Then", p[1], p[3])
+    print("Arrow: "+p[1].type +","+ p[3].type)
+
+# Produccion para detectar la expresion no terminal Concat
+def p_expresion_concat(p):
+    "concat : expresion TkConcat expresion"
+    
+    p[0] = Concat("Concat: ", p[1], p[3])
+    print("Concatenar nivel: "+p[1].type +","+ p[3].type) 
+
 # Produccion para detectar un print
 def p_expresion_print(p):
-    "print : TkPrint expresion"
+    '''print : TkPrint string
+             | TkPrint concat'''
     p[0] = Print("Print", p[2])
     print("Print: "+ p[2].type)
+
+# Produccion para detectar la expresion terminal de un identificador
+def p_expresion_string(p):
+    "string : TkString"
+    p[0] = Atom("String: ", p[1])
+    print("String: "+ p[1])  
 
 # Produccion para detectar la expresion terminal de un numero
 def p_number(p):
@@ -314,12 +347,6 @@ def p_expresion_id(p):
     "word : TkId"
     p[0] = Atom("Ident: ", p[1])
     print("Ident: "+ p[1])
-
-# Produccion para detectar la expresion terminal de un identificador
-def p_expresion_string(p):
-    "string : TkString"
-    p[0] = Atom("String: ", p[1])
-    print("String: "+ p[1])
 
 # Produccion para detectar la expresion terminal vacia o letra
 def p_expresion_empty(p):
@@ -350,7 +377,7 @@ class Atom:
 
     def print_AST(self, level=0):
         if (self.type == "Empty"):
-            AST= ""
+            AST =""
         elif(self.value == None):
             AST = "-"*level + self.type
         else:
@@ -418,6 +445,8 @@ class Secuencia:
         #print(pila)
         while(len(pila)>0):
             x = pila.popleft()
+            if x is None:
+                continue
             x.print_AST(level+1)
 
     def print_AST_DQ(self,level=0):
