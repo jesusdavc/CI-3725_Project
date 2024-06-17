@@ -109,18 +109,30 @@ def p_expresion_uminus(p):
 
 # Produccion para detectar aritmetica
 def p_expresion_aritmetic(p):
-    '''aritmetic : expresion TkPlus expresion
-                | expresion TkMinus expresion
-                | expresion TkMult expresion'''
-    
-    if(p[2] == '+'):
-        p[0] = Aritmetic("Plus", p[1], p[3])
-    elif(p[2] == '-'):
-        p[0] = Aritmetic("Minus", p[1], p[3])
-    else:
-        p[0] = Aritmetic("Mult", p[1], p[3])
-    
-    print("Aritmetica: "+p[1].type +","+ p[3].type)
+    '''aritmetic : aritmetic TkPlus aritmetic
+                | aritmetic TkMinus aritmetic
+                | aritmetic TkMult aritmetic
+                | TkOpenPar aritmetic TkClosePar
+                | negative
+                | number
+                | readArray
+                | word'''
+    if(len(p) > 2 and p[1] != '('):
+        if(p[2] == '+'):
+            p[0] = Aritmetic("Plus", p[1], p[3])
+            print("Aritmetica: "+p[1].type +","+ p[3].type)
+        elif(p[2] == '-'):
+            p[0] = Aritmetic("Minus", p[1], p[3])
+            print("Aritmetica: "+p[1].type +","+ p[3].type)
+        elif(p[2] == '*'):
+            p[0] = Aritmetic("Mult", p[1], p[3])
+            print("Aritmetica: "+p[1].type +","+ p[3].type)
+    elif p[1] == '(':
+            p[0] = p[2]
+            print("Parentesis: "+p[2].type)
+    else: 
+        p[0] = p[1]
+        print("Aritmetica: "+p[1].type)
 
 # Produccion para detectar la expresion no terminal TwoPoints
 def p_expresion_two_point(p):
