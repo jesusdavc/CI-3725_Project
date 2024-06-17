@@ -988,13 +988,6 @@ class Transicion:
     def print_AST_DQ(self):
         return self.children.print_AST_DQ()
     
-def status(x):
-        print("----------------------------")
-        print(x.type)
-        print("Este es el tipo del hijo izquierdo :"+str(x.left.type))
-        print("Este es el tipo del hijo derecho :"+str(x.right.type))
-        #print(x.level)
-        print("----------------------------")
 while True:
     f = open(sys.argv[1], "r")   
     assert f.name.endswith('.gcl') # Verifica que sea un .gcls
