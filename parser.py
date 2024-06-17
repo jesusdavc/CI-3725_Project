@@ -101,6 +101,7 @@ def p_expresion_asig(p):
 # Produccion para detectar un valor negativo
 def p_expresion_uminus(p):
     '''negative : TkMinus number %prec UMINUS
+                | TkMinus readArray %prec UMINUS
                 | TkMinus word %prec UMINUS
                 | TkMinus TkOpenPar aritmetic TkClosePar %prec UMINUS'''
     p[0] = Aritmetic("UMINUS",p[2])
@@ -226,15 +227,19 @@ def p_proposition(p):
 def p_read_array(p):
     '''readArray : reserved TkOBracket soForth TkCBracket
                  | reserved TkOBracket number TkCBracket
+                 | reserved TkOBracket negative TkCBracket
                  | word TkOBracket word TkCBracket
                  | word TkOBracket number TkCBracket
+                 | word TkOBracket negative TkCBracket
                  | word TkOBracket aritmetic TkCBracket
                  | writeArray TkOBracket number TkCBracket
                  | writeArray TkOBracket word TkCBracket
                  | writeArray TkOBracket aritmetic TkCBracket
+                 | writeArray TkOBracket negative TkCBracket
                  | readArray TkOBracket number TkCBracket
                  | readArray TkOBracket word TkCBracket
-                 | readArray TkOBracket aritmetic TkCBracket'''
+                 | readArray TkOBracket aritmetic TkCBracket
+                 | readArray TkOBracket negative TkCBracket'''
     
     p[0] = ReadArray("ReadArray", p[1], p[3])
     print("ReadArray x[]: "+ str(p[1].type) +".."+ str(p[3].type))
@@ -253,7 +258,15 @@ def p_write_array(p):
 
 # Produccion para detectar la expresion no terminal SoForth
 def p_expresion_so_forth(p):
-    "soForth : number TkSoForth number"
+    '''soForth : number TkSoForth number
+               | word TkSoForth word
+               | number TkSoForth word
+               | word TkSoForth number
+               | number TkSoForth negative
+               | word TkSoForth negative
+               | negative TkSoForth number
+               | negative TkSoForth word
+               | negative TkSoForth negative'''
 
     p[0] = TwoSoFort("TkSoForth: ", p[1], p[3])
     print(".. nivel: "+p[1].type +","+ p[3].type) 
@@ -267,6 +280,7 @@ def p_for(p):
 # Produccion para detectar condicion In
 def p_expresion_in(p):
     '''in : number TkIn to
+          | negative TkIn to
           | word TkIn to
           | readArray TkIn to '''
 
@@ -489,7 +503,7 @@ class TwoPoints:
             AST += " ".join(pila)
             print(AST)
             self.right.right.print_AST(level)
-        elif (self.right.value == "int" or self.right.value == "bool" 
+        elif (self.right.type == "ReadArray" or self.right.value == "int" or self.right.value == "bool" 
             or self.right.value == "array"): 
             #print("Estoy en AST TwoPoint QD")
             pila = deque()
@@ -637,11 +651,19 @@ class Aritmetic:
         #print("Estoy en AST ARRAY DQ")
         #print(self.value)
         #status(self)
-        pila = deque()
-        pila += self.left.print_AST_DQ()
-        pila.append(",")
-        pila += self.right.print_AST_DQ()
-        return pila
+        if (self.type == "UMINUS"):
+            #print("Estoy en uminus")
+            pila = deque()
+            pila.append("-")
+            pila += self.left.print_AST_DQ()
+            return pila
+        else:
+            #print("No estoy en uminus")
+            pila = deque()
+            pila += self.left.print_AST_DQ()
+            pila.append(",")
+            pila += self.right.print_AST_DQ()
+            return pila
   
 class Print:  
     def __init__(self, type, left=None, right=None):
