@@ -997,7 +997,7 @@ def status(x):
         print("----------------------------")
 while True:
     f = open(sys.argv[1], "r")   
-    assert f.name.endswith('.gcl') # Verifica que sea un .gcl
+    assert f.name.endswith('.gcl') # Verifica que sea un .gcls
     content = ' '.join(f.readlines())
     f.close()
     print(content)
