@@ -19,7 +19,6 @@ precedence = (
     ('left', 'TkPlus', 'TkMinus'),
     ('left', 'TkMult'),
     ('left', 'UMINUS'),
-    ('left', 'TkEqual', 'TkNEqual'),
     ('left', 'TkComma'),
     ('left', 'TkFor'),
     ('left', 'TkDo'),
@@ -28,7 +27,9 @@ precedence = (
     ('left', 'TkArrow'),
     ('left', 'TkIn'),
     ('left', 'TkTo'),
-    ('left', 'TkAnd', 'TkOr'),
+    ('left', 'TkOr'),
+    ('left', 'TkAnd'),
+    ('left', 'TkEqual', 'TkNEqual'),
     ('left', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
     ('left', 'TkOBracket', 'TkCBracket'),
     ('left', 'TkOpenPar', 'TkClosePar'),
@@ -165,6 +166,7 @@ def p_reserved(p):
 def p_not(p):
     '''not : TkNot not
            | TkNot word
+           | TkNot proposition
            | TkNot TkOpenPar proposition TkClosePar'''
     
     if (p[1] == '!'):
