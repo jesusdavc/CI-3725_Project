@@ -7,13 +7,9 @@
 # Jesús Cuéllar 15-10345
 # lexer.py
 # Analizador lexicografico para el lenguaje GCL
-<<<<<<< HEAD
-# Carnet: 15-10345 y 19-10211
-=======
 # Se contruye una analizador lexicográfico para GCL en el 
 # lenguaje Python para GCL implementando PLY
 # Documentación PLY: http://www.dabeaz.com/ply/ 
->>>>>>> 16866ddaa7b7d97ec8e02c41b3e26beca9a8145f
 # ------------------------------------------------------------
 import sys
 if ".." not in sys.path: sys.path.insert(0,"..")
@@ -138,10 +134,6 @@ def t_error(t):
     error.sum()
     t.lexer.skip(1)
 
-<<<<<<< HEAD
-# Ignora el tabulador  
-t_ignore = ' \t'
-=======
 # Ignora tabulaciones y espacios
 t_ignore = ' \t' 
 
@@ -149,7 +141,6 @@ t_ignore = ' \t'
 def t_Coment(t):
     r'//.*'
     pass
->>>>>>> 16866ddaa7b7d97ec8e02c41b3e26beca9a8145f
 
 # Crear clase que permita contar los errores encontrados
 class Error_Counter: 
@@ -172,13 +163,6 @@ lexer = lex.lex(optimize=1, lextab= "compilador")
 error = Error_Counter()
 '''
 try:
-<<<<<<< HEAD
-    f = open(sys.argv[1], "r")   
-    assert f.name.endswith('.gcl') # Verifica que sea un .gcl
-    content = f.readlines()
-    f.close()
-    # Primer analisis, se buscan posibles errores
-=======
     error = Error_Counter()
     f = open(sys.argv[1], "r")
     assert f.name.endswith('.gcl') #assert que verifica la extensión
@@ -186,20 +170,13 @@ try:
     f.close()
     lexer.lineno = 1
     # Se buscan errores en un primer recorrido.
->>>>>>> 16866ddaa7b7d97ec8e02c41b3e26beca9a8145f
     for x in content:
         lexer.input(x) # Crear tokens
         while True:
             tok = lexer.token() # Tomar un token
             if not tok: 
                 break      # Se acabo la linea
-<<<<<<< HEAD
-
-    # En caso de no tener error procedemos a imprimir cada token
-
-=======
     #Si no hay errores se hace otro recorrido e imprime los tokens
->>>>>>> 16866ddaa7b7d97ec8e02c41b3e26beca9a8145f
     if error.get_value() == 0:
         lexer.lineno = 1
         for x in content:
