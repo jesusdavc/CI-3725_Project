@@ -881,6 +881,35 @@ class SyntaxErrorException(Exception):
     def __str__(self):
         return f"{self.args[0]} (line {self.lineno})"
     
+class SymbolTable:
+    def __init__(self, parent=None):
+        self.symbols = {}
+        self.parent = parent
+    
+    def add(self, name, type):
+        if name in self.symbols:
+            raise Exception(f"Error: Redeclaration of variable '{name}'")
+        self.symbols[name] = type
+    
+    def lookup(self, name):
+        if name in self.symbols:
+            return self.symbols[name]
+        elif self.parent is not None:
+            return self.parent.lookup(name)
+        else:
+            raise Exception(f"Error: Undeclared variable '{name}'")
+    
+    def update(self, name, type):
+        if name in self.symbols:
+            self.symbols[name] = type
+        elif self.parent is not None:
+            self.parent.update(name, type)
+        else:
+            raise Exception(f"Error: Undeclared variable '{name}'")
+    
+    def __str__(self):
+        return str(self.symbols)
+
 if __name__ == "__main__":
     try:
         if len(sys.argv) != 2:
