@@ -841,16 +841,19 @@ class Declare:
         self.children.print_AST(level+1) 
 
 class Block:
-
-    def __init__(self,type, children = None,level = 0 ):
+    def __init__(self, type, body, level=0, parent_table=None):
         self.type = type
+        self.body = body
+        self.symbol_table = SymbolTable(parent_table)
         self.level = level
-        self.children = children
-
+    
     def print_AST(self, level=0):
-        ret = "-"*level + self.type 
-        print(ret)
-        self.children.print_AST(level+1)
+        print("-"*level + self.type)
+        print("Symbols Table")
+        for name, symbol_type in self.symbol_table.symbols.items():
+            print(f"--variable: {name} | type: {symbol_type}")
+        if self.body:
+            self.body.print_AST(level + 1)
 
 class Transicion:
 
