@@ -374,22 +374,29 @@ parser = yacc.yacc()
 
 #Clase para la creacion de nodos, con el fin de generar el arbol AST
 class Atom:
-
-    def __init__(self, type,value=None):
+    def __init__(self, type, value=None, symbol_table=None):
         self.type = type
         self.value = str(value)
-       
+        self.symbol_table = symbol_table
+        if self.type == "Ident:" and self.symbol_table:
+            self.symbol_type = self.symbol_table.get_symbol(self.value)
+        else:
+            self.symbol_type = None
 
     def print_AST(self, level=0):
-
-        if (self.type == "Empty"):
-            AST =""
-        elif(self.value == None):
+        if self.type == "Empty":
+            AST = ""
+        elif self.value is None:
             AST = "-"*level + self.type
         else:
-            AST = "-"*level + self.type +self.value
+            AST = "-"*level + self.type + self.value
         print(AST)
-      
+
+    def print_AST_DQ(self, level=0):
+        pila = deque()
+        pila.append(self.value)
+        return pila
+
 
     def print_AST_DQ(self, level=0):
         pila = deque()
