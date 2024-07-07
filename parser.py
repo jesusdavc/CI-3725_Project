@@ -418,6 +418,8 @@ def p_coment(p):
 def p_error(p):
     print(p)
     print("Syntax error in input!")
+    print(f"Error de sintaxis en la linea {p.lineno -1} columna:  + {str(find_column(p.lexer.lexdata,p))} : token inesperado: {p.value}")
+    yacc.restart()
 
 
 #Inicializador del parser
@@ -1486,7 +1488,12 @@ class SyntaxErrorException(Exception):
 
     def __str__(self):
         return f"{self.args[0]} (line {self.lineno})"
-    
+def find_column(input,token):
+  ultimoSalto = input.rfind('\n',0,token.lexpos)
+  if ultimoSalto < 0:
+    ultimoSalto = 0
+  column = (token.lexpos - ultimoSalto) + 1
+  return column   
 def status(x):
         print("----------------------------")
         print(x.type)
