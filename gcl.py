@@ -15,8 +15,8 @@ precedence = (
     ('left', 'TkSemicolon'),
     ('left', 'TkAsig'),
     ('left', 'TkTwoPoints'),
-    ('left', 'TkPlus'),
     ('left', 'TkMinus'),
+    ('left', 'TkPlus'),
     ('left', 'TkMult'),
     ('left', 'UMINUS'),
     ('left', 'TkComma'),
@@ -105,26 +105,19 @@ def p_expresion_asig(p):
     
     p[0] = Asignation("Asignacion: ", p[1], p[3])
 
-
-# Produccion para detectar un valor negativo
-def p_expresion_uminus(p):
-    '''negative : TkMinus number %prec UMINUS
-                | TkMinus readArray %prec UMINUS
-                | TkMinus word %prec UMINUS
-                | TkMinus TkOpenPar aritmetic TkClosePar %prec UMINUS'''
-    p[0] = Aritmetic("UMINUS",p[2])
-
 # Produccion para detectar aritmetica
 def p_expresion_aritmetic(p):
-    '''aritmetic : aritmetic TkPlus aritmetic
-                | aritmetic TkMinus aritmetic
-                | word TkMinus aritmetic
-                | aritmetic TkMult aritmetic
-                | TkOpenPar aritmetic TkClosePar
-                | negative
-                | number
-                | readArray
-                | word '''
+    '''aritmetic :  word     
+                 | readArray             
+                 | number
+                 | negative
+                 | aritmetic TkMinus aritmetic
+                 | aritmetic TkPlus aritmetic
+                 | aritmetic TkMult aritmetic
+                 | TkOpenPar aritmetic TkClosePar
+                 | word TkMinus aritmetic
+                 '''
+    #                 | word TkMinus aritmetic caso donde b-a pelado
     if(len(p) > 2 and p[1] != '('):
         if(p[2] == '+'):
             p[0] = Aritmetic("Plus", p[1], p[3])
@@ -138,6 +131,14 @@ def p_expresion_aritmetic(p):
             p[0] = p[2]
     else: 
         p[0] = p[1]
+
+# Produccion para detectar un valor negativo
+def p_expresion_uminus(p):
+    '''negative : TkMinus number %prec UMINUS
+                | TkMinus readArray %prec UMINUS
+                | TkMinus word %prec UMINUS
+                | TkMinus TkOpenPar aritmetic TkClosePar %prec UMINUS'''
+    p[0] = Aritmetic("UMINUS",p[2])
 
 # Produccion para detectar la expresion no terminal TwoPoints
 def p_expresion_two_point(p):
@@ -414,7 +415,6 @@ class Atom:
     
     #Metodo para agregar contexto a las variables
     def add_context(self, block=0):
-        print("estoy:"+self.value)
         #Verifica si es la produccion vacia o una palabra
         if self.type == "Empty" or self.type == "String: ":
             self.context = ""
@@ -462,6 +462,8 @@ class Reserved:
     #Metodo para imprimir el arbol AST
     def print_AST(self, level=0, block=0):
         if(self.value == None):
+            AST = "-"*level + self.type
+        elif self.value == "skip":
             AST = "-"*level + self.type
         else:
             AST = "-"*level + self.type +self.value +" | " + "type: "+ self.context
@@ -761,7 +763,9 @@ class Asignation:
         elif "array" in context_left and self.right.type == "ReadArray":
             print("Error por la izquierda en la asignacion")
             sys.exit(1)
-
+        elif context_left == "int" and self.right.type == "Comma":
+            print("Asignacion de una lista a un entero")
+            sys.exit(1)
         if self.right.type == "Comma" and ("array" in context_left 
             or "ReadArray" in context_left):
             # Verifica si el hijo derecho es una coma
@@ -810,6 +814,8 @@ class Space_Declare:
             self.left.print_AST(level)
         if (self.right.type == "Secuencia"):
             self.right.print_AST(level+1, block)
+        elif(self.right.type == "Block"):
+            self.right.print_AST(level, block+1)
         else:
             self.right.print_AST(level, block)
 
@@ -954,6 +960,8 @@ class Aritmetic:
             if self.left.type == "Ident: " and ("array" in context):
                 print("Error con el tipo de contexto al asignar UMINUS")
                 sys.exit(1)
+            elif context == "bool":
+                print("Error con es tipo booleano al asignar UMINUS")
             else:
                 return "int"
         else:
@@ -1056,7 +1064,10 @@ class ReadArray:
         context_left = self.left.add_context(block)
         contexto_right = self.right.add_context(block)
         # Caso int := array[booleano]
-        if "array" in context_left or context_left == "int":
+        if context_left == "int":
+            print("El contexto izquierdo de la lectura del array es incorrecto")
+            sys.exit(1)
+        elif "array" in context_left or context_left == "int":
             if (contexto_right == "int"):
                 self.context = "int"
                 return context_left
@@ -1095,7 +1106,7 @@ class WriteArray:
         #Caso analogo al readArray
         if "array" in context_left or context_left == "int":
             if (contexto_right == "int"):
-                self.context = "int"
+                self.context = context_left
                 return context_left
             print("El contexto derecho de la lectura del array es incorrecto")
             sys.exit(1)
@@ -1226,12 +1237,14 @@ class Condition:
     def add_context(self, block=0):
         context_left = self.left.add_context(block)
         context_right = self.right.add_context(block)
-
+        print("comprobacion condition")
         if context_left == context_right or ("array" in context_left and context_right == "int") or ("array" in context_right and context_left == "int"):
             self.context = "bool"
+            print("tenia")
             return self.context
         else:
-            return "ERROR"
+            print("Error en el tipo de contexto de la condicion ")
+            sys.exit(1)
 class Loop_For:
 
     def __init__(self, type, left=None, right=None):
@@ -1250,9 +1263,7 @@ class Loop_For:
             if self.left.type == "Ident: ":
                 x = self.left.print_AST_DQ()
                 x = "".join(x)
-                print("ESTOY EN IN:"+ x)
                 if not tables[block].lookup(x):
-                    print("No esta en la tabla in")
                     tables[block].add_loop(x)    
                     context_right = self.right.add_context(block)
                     if not "int" == context_right:
