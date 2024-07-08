@@ -766,6 +766,9 @@ class Asignation:
         elif context_left == "int" and self.right.type == "Comma":
             print("Asignacion de una lista a un entero")
             sys.exit(1)
+        elif tables[block].lookup(self.left.value):
+            print("Asignacion no posible, variable a cambiar es del iterador")
+            sys.exit(1)
         if self.right.type == "Comma" and ("array" in context_left 
             or "ReadArray" in context_left):
             # Verifica si el hijo derecho es una coma
@@ -1420,6 +1423,11 @@ class SymbolTable:
         else:
             False
 
+    def lookup_loop(self, name):
+        if name in self.loop:
+            return True
+        else:
+            False
     def get(self, name):
         return self.symbols.get(name)
     
