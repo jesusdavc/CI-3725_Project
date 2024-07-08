@@ -597,7 +597,6 @@ class TwoPoints:
         return pila
     #Metodo para agregar contexto a las variables
     def add_context(self, block=0):
-        print(block)
         if (self.right.type == "Space" or self.right.type == "SDeclare"):
             # Verifica si el hijo derecho es una clase Space_Declare
             if (self.left.type == "Secuencia"):
@@ -607,8 +606,6 @@ class TwoPoints:
             else:
                 pila_left = self.left.print_AST_DQ()
                 pila = self.right.print_AST_DQ()
-            print(pila_left)
-            print(pila)
             pila_right = pila.popleft().print_AST_DQ()
             long = None
             # Verifica si el hijo derecho es una clase reservada
@@ -657,14 +654,10 @@ class TwoPoints:
             # Se recorre la pila  con el fin de seguir agregando mas contexto
             # Debido a que estamos en Space se debe hacer esto, sino ocurre 
             # un recorrido incompleto
-            print("en space")
             if (pila[-1].type == "Secuencia"):
-                print("estoy en za")
                 pila.pop()
-            print(pila)
             while len(pila) > 0:
                 element = pila.popleft()
-                print("A-A")
                 # Verifica si el elemento es un bloque
                 if element.type == 'Block':
                     # Si es un bloque, se suma uno al bloque para indicar que se esta
@@ -672,7 +665,6 @@ class TwoPoints:
                     element.add_context(block+1)
                 elif (element.type != 'Empty'):
                     element.add_context(block)
-            print("termine : space")
         elif (self.right.type == "ReadArray" or self.right.value == "int" or self.right.value == "bool" 
             or self.right.value == "array"): 
             # Verifica si el hijo derecho es una clase reservada
@@ -714,8 +706,6 @@ class TwoPoints:
             # Si no es ninguna de las anteriores, se agrega contexto a los hijos
             # Caso donde es la lectura de un arreglo
             context_left = self.left.add_context(block)
-            print("TERMINE IZQUIERDA")
-            print(self.right.type)
             context_right = self.right.add_context(block) 
 
             if context_left == context_right:
@@ -724,7 +714,6 @@ class TwoPoints:
                 # Ambos hijos no coinciden con la clase
                 print("Hubo un error con el contexto entre elementos")
                 sys.exit(1)
-        print("SALLIT")
 
 #Clase para la creacion de nodos para la declaracion de producciones con asignacion
 class Asignation:
@@ -766,7 +755,7 @@ class Asignation:
         elif context_left == "int" and self.right.type == "Comma":
             print("Asignacion de una lista a un entero")
             sys.exit(1)
-        elif tables[block].lookup(self.left.value):
+        elif tables[block].lookup_loop(self.left.value):
             print("Asignacion no posible, variable a cambiar es del iterador")
             sys.exit(1)
         if self.right.type == "Comma" and ("array" in context_left 
@@ -1212,17 +1201,14 @@ class Arrow:
 
     def add_context(self, block=0):
         context_left = self.left.add_context(block)
-        print("Arrow"+ self.right.type)
 
         if context_left != "bool":
             print("Error en el contexto del lado izquierdo de la flechaf")
             sys.exit(1)
         if self.right.type == "Block":
-            print("BLOCKL")
             self.right.add_context(block+1)
         else:
             self.right.add_context(block)
-        print("termino arrow")
 class Condition:
 
     def __init__(self, type, left=None, right=None, context=None):
@@ -1240,10 +1226,8 @@ class Condition:
     def add_context(self, block=0):
         context_left = self.left.add_context(block)
         context_right = self.right.add_context(block)
-        print("comprobacion condition")
         if context_left == context_right or ("array" in context_left and context_right == "int") or ("array" in context_right and context_left == "int"):
             self.context = "bool"
-            print("tenia")
             return self.context
         else:
             print("Error en el tipo de contexto de la condicion ")
@@ -1305,9 +1289,7 @@ class Loop_Do:
         self.left.print_AST(level+1, block)
 
     def add_context(self, block=0):
-        print("en do")
         self.left.add_context(block)
-        print("termino do")
 class TwoSoFort:
 
     def __init__(self, type, left=None, right=None):
@@ -1345,7 +1327,6 @@ class Declare:
         self.children.print_AST(level+1, block) 
 
     def add_context(self, block=0):
-        print(self.children.type)
         self.children.add_context(block)
 
 class Block:
