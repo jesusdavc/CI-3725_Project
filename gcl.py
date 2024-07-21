@@ -893,6 +893,8 @@ class Asignation:
             sys.exit(1)
 
         # Verifica si el contexto de los hijos es igual
+        #print(context_left)
+        #print(context_right)
         if not (("array" in context_left) or ("array" in context_right) or 
                 context_left == context_right):
             print("Error con el tipo de asignacion")
@@ -1465,11 +1467,18 @@ class Condition:
     def add_context(self, block=0):
         context_left = self.left.add_context(block)
         context_right = self.right.add_context(block)
-
+        #print("------")
+        #print(self.left)
+        #print(self.left.print_AST_DQ())
+        #print(self.right)
+        #print(self.right.print_AST_DQ())
+        #print(context_left)
+        #print(context_right)
         if context_left == context_right:
             self.context = "bool"
             return self.context
         else:
+            #print("cai en error*")
             return "ERROR"
         
     def print_PAPP(self, level=0, block = 0):
@@ -1771,7 +1780,7 @@ def concat_set(p):
     concat = ""
     range = len(p)-1
     if (range != 0):
-        concat += "c_{32} "
+        concat += "c_{32}"
         item = p.pop()
         type = get_set(item)
         concat += "(" + type + ")"
@@ -1900,14 +1909,14 @@ def get_asignation(item, block):
     #print(incog)
     #print(x_1)
 
-    first = f"c_{33} ({get_comma(incog)})"
+    first = f"c_{{33}}({get_comma(incog)})"
     #print("termino first")
     #print(second)
     #if second is None:
     #    print("T")
     #else:
     #    print("F")
-    second = f"c_{33}({get_comma2(extra, second, x_1)})"
+    second = f"c_{{33}}({get_comma2(extra, second, x_1)})"
     #print(extra)
     
     predicado = recursive_incog(extra2, first, second, block)
@@ -1920,7 +1929,7 @@ def get_asignation(item, block):
     #print("###########################")
     asignation = f"c_{{19}}(\\lambda x_{{120}}.{predicado})(\\lambda x_{{120}}.c_{{32}}({tables[block].ESP})({tables[block].ESP}))"
     #print(asignation)
-    esp = f"c_{{24}}(c{{20}}(c_{{31}}c_{{40}}c_{{40}}))({asignation})" #abort U
+    esp = f"c_{{24}}(c_{{20}}(c_{{31}}(c_{{40}})(c_{{40}})))({asignation})" #abort U
     #esp += "("+get_asignation_PAPP(pila, block)+")"
     return esp
 
@@ -1997,7 +2006,7 @@ def recursive_incog(incog, first, second, block, i=0):
         #print(incog)
     else :
         par_ordenado = f"c_{{31}}({second})({first})"
-        esp+= f"c_{{62}}c_{{4}}(\\lambda {x}.c_{{8}})(\\lambda {x}. c_{{15}}({par_ordenado}) x_{{120}})"
+        esp+= f"c_{{62}}c_{{4}}(\\lambda {x}.c_{{8}})(\\lambda {x}.c_{{15}}({par_ordenado})(x_{{120}}))"
     return esp
 
 def get_comma(incog):
@@ -2076,7 +2085,7 @@ if __name__ == "__main__":
             contenido = ' '.join(f.readlines())
         result = parser.parse(contenido)
         result.add_context()
-        result.print_AST()
+        #result.print_AST()
         for i in range(len(tables)):
             tables[i].create_ESP()
         sem = result.print_PAPP()
