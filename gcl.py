@@ -504,11 +504,13 @@ class Reserved:
     def print_PAPP(self, level=0, block=0):
         # CLASIFICAR LOS RESERVED
         if(self.value == None):
-            AST = "-"
+            AST = ""
         elif self.value == "skip":
-            AST = "-"
-        else:
-            AST = "-"
+            AST = ""
+        elif self.value == "true":
+            AST = "c_{8}"
+        elif self.value == "false":
+            AST = "c_{9}"
         return AST 
     
     def print_PAPP_DQ(self, level=0):
@@ -902,7 +904,7 @@ class Asignation:
 
     def print_PAPP(self, level=0, block = 0):
         AST = ""
-        #AST+= self.left.print_AST(level+1, block)
+        AST+= get_asignation(self,block)
         #AST+= self.right.print_AST(level+1, block)
         return AST
 #Clase para la creacion de nodos para la declaracion de producciones con Space
@@ -1182,6 +1184,21 @@ class Print:
             else:
                 self.left.add_context(block) 
 
+    def print_PAPP(self, level=0, block = 0):
+        ret = "EXPRESION"
+        '''if self is not None:
+            if(self.right is not None):
+                pila = deque()
+                pila += self.left.print_AST_DQ(level+1)
+                level+= len(pila)
+
+                while(len(pila)>0):
+                    x = pila.popleft()
+                    ret+=x.print_PAPP(level+1, block)
+            else:
+                ret+= self.left.print_PAPP(level+1, block)'''
+        return ret
+    
 # Clase para la lectura de array  
 class ReadArray:
     # Construtor
@@ -1308,7 +1325,7 @@ class Condition_If:
         ret = "-"*level + self.type 
         print(ret)
         self.children.print_AST(level+1, block)
-    
+
     def add_context(self, block=0):
         self.children.add_context(block)
 
@@ -1341,7 +1358,7 @@ class Guard:
         pila = deque()
         if check != 1:
             ret = "-"*level + self.type 
-            print(ret)
+            #print(ret)
         pila.append(self.left)
         if (self.right.type == "Guard"):
             pila += self.right.print_AST_DQ(level+1, check)
@@ -1365,6 +1382,7 @@ class Guard:
 
     def print_PAPP(self, level=0, block = 0):
         pila = deque()
+        #print("Estoy en if")
         ret = ""
         pila.append(self.left)
         if(self.right.type == "Guard"):
@@ -1751,8 +1769,8 @@ def concat_secuencia(p, block):
         type = "noting"
         if item.type == "Asignacion: ":
             type = get_asignation(item, block)
-        #elif item.type == "If":
-            #type = get_if(item)
+        elif item.type == "If":
+            type = get_if(item, block)
         concat += "(" + type + ") "
         concat += "("+concat_secuencia(p, block)+")"
         return concat
@@ -1761,8 +1779,8 @@ def concat_secuencia(p, block):
         type = "noting"
         if item.type == "Asignacion: ":
             type = get_asignation(item, block)
-        #elif item.type == "If":
-            #type = get_if(item)
+        elif item.type == "If":
+            type = get_if(item, block)
         concat += type
         return concat   
 # Funcion que determina el codigo del numero
@@ -1873,7 +1891,64 @@ def get_asignation(item, block):
     esp = f"c_{{24}} (c{{20}} (c_{{31}} c_{{40}} c_{{40}})) ({asignation})" #abort U
     #esp += "("+get_asignation_PAPP(pila, block)+")"
     return esp
+def get_if(item, block):
+    print("ESTOY EN GET_IF")
+    item = item.children
+    print(item)
+    esp = ""
+    if(item.type == "Guard"):
+        pila = item.print_AST_DQ()
+    else:
+        pila = deque()
+        pila.append(item)
 
+    print(pila)
+    instrucciones = deque()
+    condiciones = deque()
+    for arrow  in pila:
+        condiciones.append(arrow.left)
+        instrucciones.append(arrow.right)
+    #print(condiciones)
+    #print(instrucciones)
+    list_T = []
+    list_S = []
+    list_id = []
+    list_first = []
+    #creacion de condicones/Ti
+    for x in condiciones:
+        predicado = x.print_PAPP()
+        conjunto = f"c_{{19}} ({predicado}) (\lambda x_{{120}}. ({tables[block].ESP}))"
+        #print(conjunto)
+        list_T.append(conjunto)
+    #print(list_T)
+
+    # Creacion de instruciiones sem<inst>
+    for x in instrucciones:
+        sem = x.print_PAPP()
+        #print(sem)
+        list_S.append(sem)
+
+    # creacion de id_Ti
+    for x in list_T:
+        id = f"c_{{39}} ({x})"
+        list_id.append(id)
+    i=0
+    # creacion de sem<instruccion > o id
+    for x in list_S:
+        element = f"c_{{34}} ({list_id[i]}) ({x})"
+        list_first.append(element)
+        i+=1
+    # Union de todos los sem<instruccion > o id
+    first = f"c_{{33}} ({get_union(list_first)})"
+    # Union de Ti
+    second_left = f"c_{{33}} ({get_union(list_T)})"
+    second_left = f"c_{{41}} ({second_left}))"
+    second = f"c_{{33}} (c_{{32}} (c_{{20}} c_{{40}}) ({second_left}))"
+    esp = f"c_{{24}} ({second}) ({first})"
+    #print(list_T)
+    #print(list_S)    
+    #print("Aqui")
+    return esp
 def recursive_incog(incog, first, second, block, i=0):
     esp = ""
     range = len(incog)-(i+1)
@@ -1905,22 +1980,19 @@ def get_comma(incog):
         comma += item
         return comma
     
-def get_expresion(incog, pila, block):
-    esp = ""
-    #print("estoy en get expresion")
-    incog.remove('x_1')
-    while(True):
-        i = pila[0]
-        #print(i)
-        if not i == ":=":
-            pila.pop(0)
-            incog.remove(i)
-        else:
-            pila.pop(0)
-            break
-    #print(pila)
-    #print(incog)
-    return esp
+def get_union(pila):
+    union = ""
+    range = len(pila)-1
+    if (range != 0):
+        union += "c_{24} "
+        item = pila.pop()
+        union += "(" + item + ") "
+        union += "("+get_union(pila)+")"
+        return union
+    else:
+        item = pila.pop()
+        union += item
+        return union
 
 def separar_numero(numero):
     # Convertir el número a string para iterar sobre cada dígito
