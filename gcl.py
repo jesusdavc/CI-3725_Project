@@ -454,9 +454,9 @@ class Atom:
         if (self.type == "Empty"):
             AST =""
         elif(self.value == None):
-            AST = "-"
+            AST = ""
         elif(self.type == "String: "):
-            AST = "-"
+            AST = ""
         elif es_entero(self.value):
             AST = create_numbers(int(self.value))
         else:
@@ -827,8 +827,8 @@ class TwoPoints:
         AST = ""
         #print(self.left)
         #print(self.right)
-        AST+= "("+self.right.print_PAPP(level+1, block)+") "
-        AST+= "("+self.left.print_PAPP(level+1, block)+") "
+        AST+= "("+self.right.print_PAPP(level+1, block)+")"
+        AST+= "("+self.left.print_PAPP(level+1, block)+")"
         #print(AST)
         return AST
 #Clase para la creacion de nodos para la declaracion de producciones con asignacion
@@ -1298,7 +1298,7 @@ class WriteArray:
         ret = "c_{58}"
         ret+= self.right.print_PAPP(level+1, block)
         #print(ret)
-        ret+= "("+self.left.print_PAPP(level+1, block)+") "
+        ret+= "("+self.left.print_PAPP(level+1, block)+")"
         #print(ret)
         return ret
     
