@@ -633,13 +633,13 @@ class Secuencia:
                 i -= 1
                 #x.print_AST()
                 #ret += x.print_PAPP(level+1, block)
-        print(pila)
+        #print(pila)
         if (pila[-1].type == "Empty"):
             pila.pop()
-        print(pila)
+        #print(pila)
         #range = len(pila) -1
         ret += concat_secuencia(pila, block)
-
+        #print(ret)
         return ret
 # Clase para la creacion de nodos para la declaracion de producciones con dos puntos   
 class TwoPoints:
@@ -949,6 +949,7 @@ class Space_Declare:
             ret += self.right.print_AST(level, block+1)
         else:
             self.right.print_AST(level, block)
+        return ret
 #Clase para la creacion de nodos para la declaracion de producciones con coma
 class Comma:
     #Constructor de la clase
@@ -1102,7 +1103,7 @@ class Aritmetic:
 
     def print_PAPP(self, level=0, block = 0):
         if (self.type == "UMINUS"):
-            AST = "-"*level + 'Minus' + " | "+ "type: "+ self.context
+            AST = "c_{64} "
             AST+= self.left.print_PAPP(level, block)
         else:
             AST = ""
@@ -1436,9 +1437,50 @@ class Condition:
 
     def print_PAPP(self, level=0, block = 0):
         ret = ""
-        ret += self.left.print_AST(level+1, block)
-        ret += self.right.print_AST(level+1, block)
+        if (self.type == "And"):
+            ret+= "c_{5} "
+        elif (self.type == "Or"):
+            ret+= "c_{4} "
+        elif (self.type == "Less"):
+            ret+= "c_{65} "
+        elif (self.type == "Leq"):
+            ret+= "c_{66} "
+        elif (self.type == "Geq"):
+            ret+= "c_{68} "
+        elif (self.type == "Greater"):
+            ret+= "c_{67} "
+        elif (self.type == "Equal"):
+            ret+= "c_{15} "
+        elif (self.type == "NEqual"):
+            ret+= "c_{59} "
+        ret+="("+self.right.print_PAPP(level+1, block)+")"
+        ret+= "("+self.left.print_PAPP(level+1, block)+")"
         return ret
+    
+    def print_PAPP_DQ(self, level=0, block = 0):
+        #print("Aqui en condition")
+        pila = deque()
+        pila+= self.left.print_PAPP_DQ()
+        #print(pila)
+        if (self.type == "And"):
+            pila.append("/\\")
+        elif (self.type == "Or"):
+            pila.append("\/")
+        elif (self.type == "Less"):
+            pila.append("<")
+        elif (self.type == "Leq"):
+            pila.append("<=")
+        elif (self.type == "Geq"):
+            pila.append(">=")
+        elif (self.type == "Greater"):
+            pila.append(">")
+        elif (self.type == "Equal"):
+            pila.append("==")
+        elif (self.type == "NEqual"):
+            pila.append("!=")
+        pila+= self.right.print_PAPP_DQ()
+        #print(pila)
+        return pila
 class Loop_For:
 
     def __init__(self, type, left=None, right=None):
@@ -1770,12 +1812,15 @@ def get_set(type):
 
 def get_asignation(item, block):
     esp = ""
-    #print(item.left.type)
-    #print(item.right.type)
+    print(item.left.type)
+    print(item.right.type)
     #2
     x_1 = item.left.print_PAPP()
+    #print(x_1)
     second = f"{item.right.print_PAPP()}" # Expresion
+    #print(second)
     pila = item.left.print_PAPP_DQ()
+    #print(pila)
     pila.append(":=")
     pila += item.right.print_PAPP_DQ()
     #print(pila)
@@ -1843,7 +1888,7 @@ def recursive_incog(incog, first, second, block, i=0):
         #print(incog)
     else :
         par_ordenado = f"c_{{31}} ({second}) ({first})"
-        esp+= f"c_{{62}} c_{{4}} (\lambda {x}.c_{{8}}) (\lambda {x}. c_{{15}} {par_ordenado} x_{{120}})"
+        esp+= f"c_{{62}} c_{{4}} (\lambda {x}.c_{{8}}) (\lambda {x}. c_{{15}} ({par_ordenado}) x_{{120}})"
     return esp
 
 def get_comma(incog):
