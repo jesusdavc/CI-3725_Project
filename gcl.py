@@ -592,38 +592,39 @@ class Secuencia:
     def print_PAPP(self, level=0, block =0):
         ret = ""
         pila = deque()
+        #print("AQUI EN SECUENCIA")
         if not self.left.type == "Tpdeclare":
             ret = ""
 
         if(self.left.type == "Secuencia"):
-            print("check secuencia")
+            #print("check secuencia")
             pila += self.left.print_AST_DQ(level+1)
         else:
             pila.append(self.left)
-        print(pila)
+        #print(pila)
         if(self.right.type == "Secuencia"):
-            print("check secuencia")
+            #print("check secuencia")
             pila += self.right.print_AST_DQ(level+1)
         else:
             pila += self.right.print_AST_DQ(level+1)
-        print("Estoy en secuencia")
-        print(pila)
+        #print("Estoy en secuencia")
+        #print(pila)
         pila.pop()
         i = 3
         while(i>0):
             check = False
             for x in pila:
-                print(x.type)
+                #print(x.type)
                 if x is None:
                     continue
                 elif x.type == "TwoPoints" or x.type == "Tpdeclare" or x.type == "SDeclare":   
                     # Caso para evitar la impresion de un declare
-                    print("1")
+                    #print("1")
                     pila.remove(x)
                     check = True
                     break
                 elif x.type == "Secuencia":
-                    print("loop s")
+                    #print("loop s")
                     pila.remove(x)
                     pila = x.print_AST_DQ(level+1) + pila
                     check = True
@@ -805,26 +806,13 @@ class TwoPoints:
     
     def print_PAPP(self, level=0, block =0):
         # Verificamos si es una clase Space_Declare o una clase Reserved
-        ret =""
-        if (self.right.type == "Space" or self.right.type == "SDeclare"):
-            ret+= self.right.right.print_PAPP(0, block)
-            return ret
-        elif (self.right.type == "ReadArray" or self.right.value == "int" or self.right.value == "bool" 
-            or self.right.value == "array"): 
-
-            pila = deque()
-            AST = "-"*level
-            pila += self.left.print_AST_DQ()
-            pila.append(":")
-            pila += self.right.print_AST_DQ()
-            AST += " ".join(pila)
-            return AST
-        else:
-
-            AST = ""
-            AST+= self.left.print_AST(level+1, block)
-            AST+= self.right.print_AST(level+1, block)
-            return AST
+        AST = ""
+        #print(self.left)
+        #print(self.right)
+        AST+= "("+self.right.print_PAPP(level+1, block)+") "
+        AST+= "("+self.left.print_PAPP(level+1, block)+") "
+        print(AST)
+        return AST
 #Clase para la creacion de nodos para la declaracion de producciones con asignacion
 class Asignation:
 
@@ -1245,15 +1233,19 @@ class ReadArray:
         sys.exit(1) 
 
     def print_PAPP(self, level=0, block = 0):
-        if (self.left.type == "TwoPoints"):
             ret = ""
-            ret+= " ".join(self.print_AST_DQ())
+            ret+= "("+self.left.print_PAPP(level+1, block)+ ") "
+            ret+= self.right.print_PAPP(level+1, block)
+            print(ret)
             return ret
-        else:
-            ret = ""
-            ret+= self.left.print_AST(level+1, block)
-            ret+= self.right.print_AST(level+1, block)
-            return ret
+    
+    def print_PAPP_DQ(self, level=0):
+        pila = deque()
+        pila += self.left.print_AST_DQ()
+        pila.append("[")
+        pila += self.right.print_AST_DQ()
+        pila.append("]")
+        return pila
 # Clase para lectura de array
 class WriteArray:
     # Construtor
@@ -1292,10 +1284,23 @@ class WriteArray:
         sys.exit(1)
 
     def print_PAPP(self, level=0, block = 0):
-        ret = ""
-        ret+= self.left.print_PAPP(level+1, block)
+        print("ESTOY EN WAPAPP")
+        print(self.left)
+        print(self.right)
+        ret = "c_{58} "
         ret+= self.right.print_PAPP(level+1, block)
+        print(ret)
+        ret+= "("+self.left.print_PAPP(level+1, block)+") "
+        print(ret)
         return ret
+    
+    # Obtencion de pila
+    def print_PAPP_DQ(self, level=0):
+        pila = deque()
+        pila.append("(")
+        pila += self.left.print_AST_DQ(level)
+        pila.append(")")
+        return pila
 class Not:
 
     def __init__(self, type, children):
@@ -1311,9 +1316,17 @@ class Not:
         context = self.children.add_context(block)
         return context
     def print_PAPP(self, level=0, block = 0):
-        ret = ""
-        ret += self.children.print_PAAP(level+1, block) 
-        return ret    
+        #print("ESTOY en NOT PA")
+        ret = "c_{7} "
+        #print(self.children)
+        ret += "("+self.children.print_PAPP(level+1, block)+")" 
+        return ret 
+     
+    def print_PAPP_DQ(self, level=0, block = 0):
+        #print("ESTOY en NOT DQ")
+        ret = "c_{7} "
+        ret+="("+self.children.print_PAPP(level+1, block)+")"
+        return ret  
 class Condition_If:
 
     def __init__(self,type, children = None,level = 0 ):
@@ -1483,7 +1496,7 @@ class Condition:
         if (self.type == "And"):
             pila.append("/\\")
         elif (self.type == "Or"):
-            pila.append("\/")
+            pila.append("\\/")
         elif (self.type == "Less"):
             pila.append("<")
         elif (self.type == "Leq"):
@@ -1598,6 +1611,7 @@ class Declare:
 
     def print_PAPP(self, level=0, block = 0):
         ret= ""
+        #print("en declare")
         ret+= self.children.print_PAPP(level+1, block)
         return ret
 
@@ -1621,6 +1635,7 @@ class Block:
 
     def print_PAPP(self, level=0, block = 0):
         ret = ""
+        #print("BLOCK")
         ret+= self.children.print_PAPP(level, block)
         return ret
 class Transicion:
@@ -1646,6 +1661,14 @@ class Transicion:
     def add_context(self, block=0):
         self.children.add_context(block)
 
+    def print_PAPP(self, level=0, block = 0):
+        if(self.type == "Print"):
+            AST = ""
+            AST+= self.children.print_PAPP(level+1, block)
+        else:
+            AST+= self.children.print_PAPP(level, block)
+        return AST
+    
 #Clase para manejo de errores.     
 class SyntaxErrorException(Exception):
     def __init__(self, message, lineno):
@@ -1817,7 +1840,7 @@ def get_set(type):
         type = type.replace("]","")
         type = type.replace("..",",")
         pila = type.split(",")
-        print(pila)
+        #print(pila)
         n1 = "("+ create_numbers(int(pila[0])) + ")"
         n2 = "("+ create_numbers(int(pila[-1])) + ")"
         exponente = f"c_{63} {n2} {n1}"
@@ -1830,8 +1853,8 @@ def get_set(type):
 
 def get_asignation(item, block):
     esp = ""
-    print(item.left.type)
-    print(item.right.type)
+    #print(item.left.type)
+    #print(item.right.type)
     #2
     x_1 = item.left.print_PAPP()
     #print(x_1)
@@ -1886,15 +1909,15 @@ def get_asignation(item, block):
     #print("###########################")
     #print(predicado)
     #print("###########################")
-    asignation = f"c_{19} ({predicado}) (\lambda x_{{120}}. c_{{32}} ({tables[block].ESP}) ({tables[block].ESP}))"
+    asignation = f"c_{19} ({predicado}) (\\lambda x_{{120}}. c_{{32}} ({tables[block].ESP}) ({tables[block].ESP}))"
     #print(asignation)
     esp = f"c_{{24}} (c{{20}} (c_{{31}} c_{{40}} c_{{40}})) ({asignation})" #abort U
     #esp += "("+get_asignation_PAPP(pila, block)+")"
     return esp
 def get_if(item, block):
-    print("ESTOY EN GET_IF")
+    #print("ESTOY EN GET_IF")
     item = item.children
-    print(item)
+    #print(item)
     esp = ""
     if(item.type == "Guard"):
         pila = item.print_AST_DQ()
@@ -1902,7 +1925,7 @@ def get_if(item, block):
         pila = deque()
         pila.append(item)
 
-    print(pila)
+    #print(pila)
     instrucciones = deque()
     condiciones = deque()
     for arrow  in pila:
@@ -1917,7 +1940,7 @@ def get_if(item, block):
     #creacion de condicones/Ti
     for x in condiciones:
         predicado = x.print_PAPP()
-        conjunto = f"c_{{19}} ({predicado}) (\lambda x_{{120}}. ({tables[block].ESP}))"
+        conjunto = f"c_{{19}} ({predicado}) (\\lambda x_{{120}}. ({tables[block].ESP}))"
         #print(conjunto)
         list_T.append(conjunto)
     #print(list_T)
@@ -1949,6 +1972,7 @@ def get_if(item, block):
     #print(list_S)    
     #print("Aqui")
     return esp
+
 def recursive_incog(incog, first, second, block, i=0):
     esp = ""
     range = len(incog)-(i+1)
@@ -1959,11 +1983,11 @@ def recursive_incog(incog, first, second, block, i=0):
     if not range == 0:
         i+=1
         a3 = recursive_incog(incog, first, second, block,i)
-        esp+= f"c_{{62}} c_{{4}} (\lambda {x}.c_{{8}}) (\lambda {x}. {a3})"
+        esp+= f"c_{{62}} c_{{4}} (\\lambda {x}.c_{{8}}) (\\lambda {x}. {a3})"
         #print(incog)
     else :
         par_ordenado = f"c_{{31}} ({second}) ({first})"
-        esp+= f"c_{{62}} c_{{4}} (\lambda {x}.c_{{8}}) (\lambda {x}. c_{{15}} ({par_ordenado}) x_{{120}})"
+        esp+= f"c_{{62}} c_{{4}} (\\lambda {x}.c_{{8}}) (\\lambda {x}. c_{{15}} ({par_ordenado}) x_{{120}})"
     return esp
 
 def get_comma(incog):
@@ -2024,8 +2048,8 @@ if __name__ == "__main__":
             #print(tables[i].symbols)
             #print(tables[i].long)
             #print(tables[i].loop)
-            print(tables[i].esp)
-            print(tables[i].ESP)
+            #print(tables[i].esp)
+            #print(tables[i].ESP)
         sem = result.print_PAPP()
 
         print(sem)
