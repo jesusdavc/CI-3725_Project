@@ -58,7 +58,7 @@ def p_expresion_declare(p):
     '''declare : TkDeclare expresion'''
 
 
-    p[0] = Declare("Symbol Table", p[2])
+    p[0] = Declare("Declare", p[2])
     print("declare: " + p[2].type )
 
 # Produccion para detectar la expresion las secuencias del programa
@@ -91,10 +91,10 @@ def p_expresion_space_empty(p):
              | twoPoints print
              | readArray print'''
     if p[1].type == "ReadArray":
-        p[0] = Space_Declare("SDeclare", p[1], p[2])
+        p[0] = Space_Declare("ASDeclare", p[1], p[2])
         print("space: "+p[1].type +","+ p[2].type) 
     else:
-        p[0] = Space_Declare("SDeclare", p[1], p[2])
+        p[0] = Space_Declare("ISDeclare", p[1], p[2])
         print("space: "+p[1].type +","+ p[2].type) 
 
 def p_expresion_semicolon(p):
@@ -1509,7 +1509,7 @@ while True:
     f.close()
     print(content)
     result = parser.parse(content)
-    result.add_context()
+    #result.add_context()
     result.print_AST()
     print(tables)
     for table in tables:

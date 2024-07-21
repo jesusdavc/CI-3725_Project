@@ -446,6 +446,24 @@ class Atom:
             print("Variable no pertenece a ninguna tabla")
         # Si no se encuentra en ninguna tabla, se imprime un error y cierra
         sys.exit(1)
+
+    def print_PAPP(self, level=0, block=0):
+        if (self.type == "Empty"):
+            AST =""
+        elif(self.value == None):
+            AST = "-"
+        elif(self.type == "String: "):
+            AST = "-"
+        elif es_entero(self.value):
+            AST = create_numbers(int(self.value))
+        else:
+            AST = tables[block].esp[self.value]
+        return AST
+    
+    def print_PAPP_DQ(self, level=0):
+        pila = deque()
+        pila.append(self.value)
+        return pila    
 class Reserved:
     #Constructor de la clase
     def __init__(self, type, left=None, right=None, value=None, context=None):
@@ -483,6 +501,20 @@ class Reserved:
         else:
             return self.context
         
+    def print_PAPP(self, level=0, block=0):
+        # CLASIFICAR LOS RESERVED
+        if(self.value == None):
+            AST = "-"
+        elif self.value == "skip":
+            AST = "-"
+        else:
+            AST = "-"
+        return AST 
+    
+    def print_PAPP_DQ(self, level=0):
+        pila = deque()
+        pila.append(self.value)
+        return pila          
 #Clase para la creacion de nodos para punto y comas(;)
 class Secuencia:
 
@@ -555,6 +587,60 @@ class Secuencia:
                 # Si no es un bloque, se agrega el contexto de los hijos de la pila
                 x.add_context(block)
 
+    def print_PAPP(self, level=0, block =0):
+        ret = ""
+        pila = deque()
+        if not self.left.type == "Tpdeclare":
+            ret = ""
+
+        if(self.left.type == "Secuencia"):
+            print("check secuencia")
+            pila += self.left.print_AST_DQ(level+1)
+        else:
+            pila.append(self.left)
+        print(pila)
+        if(self.right.type == "Secuencia"):
+            print("check secuencia")
+            pila += self.right.print_AST_DQ(level+1)
+        else:
+            pila += self.right.print_AST_DQ(level+1)
+        print("Estoy en secuencia")
+        print(pila)
+        pila.pop()
+        i = 3
+        while(i>0):
+            check = False
+            for x in pila:
+                print(x.type)
+                if x is None:
+                    continue
+                elif x.type == "TwoPoints" or x.type == "Tpdeclare" or x.type == "SDeclare":   
+                    # Caso para evitar la impresion de un declare
+                    print("1")
+                    pila.remove(x)
+                    check = True
+                    break
+                elif x.type == "Secuencia":
+                    print("loop s")
+                    pila.remove(x)
+                    pila = x.print_AST_DQ(level+1) + pila
+                    check = True
+                    break
+                    #p = x.print_AST_DQ()
+                    #x.print_AST()
+                    #print(p)
+            if not check:
+                i -= 1
+                #x.print_AST()
+                #ret += x.print_PAPP(level+1, block)
+        print(pila)
+        if (pila[-1].type == "Empty"):
+            pila.pop()
+        print(pila)
+        #range = len(pila) -1
+        ret += concat_secuencia(pila, block)
+
+        return ret
 # Clase para la creacion de nodos para la declaracion de producciones con dos puntos   
 class TwoPoints:
     #Constructor de la clase
@@ -714,7 +800,29 @@ class TwoPoints:
                 # Ambos hijos no coinciden con la clase
                 print("Hubo un error con el contexto entre elementos")
                 sys.exit(1)
+    
+    def print_PAPP(self, level=0, block =0):
+        # Verificamos si es una clase Space_Declare o una clase Reserved
+        ret =""
+        if (self.right.type == "Space" or self.right.type == "SDeclare"):
+            ret+= self.right.right.print_PAPP(0, block)
+            return ret
+        elif (self.right.type == "ReadArray" or self.right.value == "int" or self.right.value == "bool" 
+            or self.right.value == "array"): 
 
+            pila = deque()
+            AST = "-"*level
+            pila += self.left.print_AST_DQ()
+            pila.append(":")
+            pila += self.right.print_AST_DQ()
+            AST += " ".join(pila)
+            return AST
+        else:
+
+            AST = ""
+            AST+= self.left.print_AST(level+1, block)
+            AST+= self.right.print_AST(level+1, block)
+            return AST
 #Clase para la creacion de nodos para la declaracion de producciones con asignacion
 class Asignation:
 
@@ -792,6 +900,11 @@ class Asignation:
             print("Error con el tipo de asignacion")
             sys.exit(1)
 
+    def print_PAPP(self, level=0, block = 0):
+        AST = ""
+        #AST+= self.left.print_AST(level+1, block)
+        #AST+= self.right.print_AST(level+1, block)
+        return AST
 #Clase para la creacion de nodos para la declaracion de producciones con Space
 class Space_Declare:
     #Constructor de la clase
@@ -828,6 +941,14 @@ class Space_Declare:
         else:
             self.right.add_context(block)
 
+    def print_PAPP(self, level=0, block = 0):
+        ret = ""
+        if (self.right.type == "Secuencia"):
+            ret += self.right.print_PAPP(level+1, block)
+        elif(self.right.type == "Block"):
+            ret += self.right.print_AST(level, block+1)
+        else:
+            self.right.print_AST(level, block)
 #Clase para la creacion de nodos para la declaracion de producciones con coma
 class Comma:
     #Constructor de la clase
@@ -978,6 +1099,43 @@ class Aritmetic:
                 print("Error con el contexto de la operacion ")
                 sys.exit(1)
 
+
+    def print_PAPP(self, level=0, block = 0):
+        if (self.type == "UMINUS"):
+            AST = "-"*level + 'Minus' + " | "+ "type: "+ self.context
+            AST+= self.left.print_PAPP(level, block)
+        else:
+            AST = ""
+            #print(AST)
+            if (self.type == "Plus"):
+                AST += "c_{55} "
+            elif (self.type == "Minus"):
+                AST += "c_{56} "
+            else:
+                AST += "c_{57} "
+            AST+="("+self.right.print_PAPP(level+1, block)+")"
+            AST+= "("+self.left.print_PAPP(level+1, block)+")"
+        return AST
+        
+    def print_PAPP_DQ(self, level=0):
+
+        if (self.type == "UMINUS"):
+            pila = deque()
+            pila.append("-")
+            pila += self.left.print_PAPP_DQ()
+            return pila
+        else:
+            pila = deque()
+            pila += self.left.print_PAPP_DQ()
+            if (self.type == "Plus"):
+                pila.append("+")
+            elif (self.type == "Minus"):
+                pila.append("-")
+            else:
+                pila.append("*")
+            pila += self.right.print_PAPP_DQ()
+            return pila
+        
 # Clase para la gramatica print
 class Print:  
     # Construtor
@@ -1068,6 +1226,16 @@ class ReadArray:
         print("El contexto izquierdo de la lectura del array es incorrecto")
         sys.exit(1) 
 
+    def print_PAPP(self, level=0, block = 0):
+        if (self.left.type == "TwoPoints"):
+            ret = ""
+            ret+= " ".join(self.print_AST_DQ())
+            return ret
+        else:
+            ret = ""
+            ret+= self.left.print_AST(level+1, block)
+            ret+= self.right.print_AST(level+1, block)
+            return ret
 # Clase para lectura de array
 class WriteArray:
     # Construtor
@@ -1105,6 +1273,11 @@ class WriteArray:
         print("El contexto derecho de la escritura del array es incorrecto")
         sys.exit(1)
 
+    def print_PAPP(self, level=0, block = 0):
+        ret = ""
+        ret+= self.left.print_PAPP(level+1, block)
+        ret+= self.right.print_PAPP(level+1, block)
+        return ret
 class Not:
 
     def __init__(self, type, children):
@@ -1119,7 +1292,10 @@ class Not:
     def add_context(self, block=0):
         context = self.children.add_context(block)
         return context
-        
+    def print_PAPP(self, level=0, block = 0):
+        ret = ""
+        ret += self.children.print_PAAP(level+1, block) 
+        return ret    
 class Condition_If:
 
     def __init__(self,type, children = None,level = 0 ):
@@ -1134,7 +1310,11 @@ class Condition_If:
     
     def add_context(self, block=0):
         self.children.add_context(block)
-    
+
+    def print_PAPP(self, level=0, block = 0):
+        ret = ""
+        ret+= self.children.print_AST(level+1, block)   
+        return ret
 class Guard:
 
     def __init__(self, type, left=None, right=None):
@@ -1182,7 +1362,19 @@ class Guard:
             else:
                 x.add_context(block)
 
-
+    def print_PAPP(self, level=0, block = 0):
+        pila = deque()
+        ret = ""
+        pila.append(self.left)
+        if(self.right.type == "Guard"):
+            pila += self.right.print_AST_DQ(level+1)
+        else:
+            pila.append(self.right)
+            
+        while(len(pila)>0):
+            x = pila.popleft()
+            ret += x.print_PAPP(level+1, block)
+        return ret
 class Arrow:
 
     def __init__(self, type, left=None, right=None):
@@ -1209,6 +1401,15 @@ class Arrow:
             self.right.add_context(block+1)
         else:
             self.right.add_context(block)
+
+    def print_PAPP(self, level=0, block = 0):
+        ret = ""
+        ret += self.left.print_PAPP(level+1, block)
+        if (self.right.type == "Block"):
+            ret+= self.right.print_PAPP(level+1, block+1)
+        else:
+            ret+= self.right.print_PAPP(level+1, block)
+        return ret
 class Condition:
 
     def __init__(self, type, left=None, right=None, context=None):
@@ -1232,6 +1433,12 @@ class Condition:
         else:
             print("Error en el tipo de contexto de la condicion ")
             sys.exit(1)
+
+    def print_PAPP(self, level=0, block = 0):
+        ret = ""
+        ret += self.left.print_AST(level+1, block)
+        ret += self.right.print_AST(level+1, block)
+        return ret
 class Loop_For:
 
     def __init__(self, type, left=None, right=None):
@@ -1329,6 +1536,11 @@ class Declare:
     def add_context(self, block=0):
         self.children.add_context(block)
 
+    def print_PAPP(self, level=0, block = 0):
+        ret= ""
+        ret+= self.children.print_PAPP(level+1, block)
+        return ret
+
 class Block:
     
     def __init__(self,type, children = None,level = 0,):
@@ -1347,6 +1559,10 @@ class Block:
     def add_context(self, block=0):
         self.children.add_context(block)
 
+    def print_PAPP(self, level=0, block = 0):
+        ret = ""
+        ret+= self.children.print_PAPP(level, block)
+        return ret
 class Transicion:
 
     def __init__(self, type, children = None,level = 0, value=0):
@@ -1384,6 +1600,8 @@ class SymbolTable:
         self.symbols = {}
         self.long ={}
         self.loop = {}
+        self.esp = {}
+        self.ESP = ""
 
     def add(self, name, type):
         if name in self.symbols:
@@ -1421,7 +1639,14 @@ class SymbolTable:
     def print_AST(self, level=0):
         for name, type in self.symbols.items():
             print("-"*(level) + f"Variable: {name} | type: {type}")
-
+    
+    def create_ESP(self):
+        i = 1
+        for name in self.symbols.keys():
+            self.esp[name] = "x_{"+str(i)+"}"
+            i+=1
+        tp = list(self.symbols.values()) 
+        self.ESP = concat_set(tp)
 #Funcion para verificar si un string es un entero
 def es_entero(s):
     try:
@@ -1430,6 +1655,235 @@ def es_entero(s):
     except ValueError:
         return False  # La conversión falló, s no es un int 
     
+# Funcion para determinar numeros
+def create_numbers(s):
+    numbers = ""
+    if s > 9:
+        pila = separar_numero(s)
+        #print(pila)
+        numbers = concat_numbers(pila)
+        #print(numbers)
+    else:
+        numbers = get_number(s)
+        #print(numbers)
+    return numbers
+
+def concat_numbers(p):
+    concat = ""
+    range = len(p)-1
+    if (range != 0):
+        concat += "c_{54} "
+        n = p.pop(0)
+        id = get_number(n)
+        concat += id
+        concat += "("+concat_numbers(p)+")"
+        return concat
+    else:
+        n = p.pop(0)
+        id = get_number(n)
+        concat += id
+        return concat
+    
+def concat_set(p):
+    concat = ""
+    range = len(p)-1
+    if (range != 0):
+        concat += "c_{32} "
+        item = p.pop()
+        type = get_set(item)
+        concat += "(" + type + ") "
+        concat += "("+concat_set(p)+")"
+        return concat
+    else:
+        item = p.pop()
+        type = get_set(item)
+        concat += type
+        return concat 
+     
+def concat_secuencia(p, block):
+    concat = ""
+    range = len(p)-1
+    if (range != 0):
+        concat += "c_{34} "
+        item = p.pop()
+        type = "noting"
+        if item.type == "Asignacion: ":
+            type = get_asignation(item, block)
+        #elif item.type == "If":
+            #type = get_if(item)
+        concat += "(" + type + ") "
+        concat += "("+concat_secuencia(p, block)+")"
+        return concat
+    else:
+        item = p.pop()
+        type = "noting"
+        if item.type == "Asignacion: ":
+            type = get_asignation(item, block)
+        #elif item.type == "If":
+            #type = get_if(item)
+        concat += type
+        return concat   
+# Funcion que determina el codigo del numero
+def get_number(s):
+    numbers = ""
+    if s == 0:
+        numbers = "c_{42} "
+    elif s == 1:
+        numbers = "c_{43} "
+    elif s == 2:
+        numbers = "c_{44} "
+    elif s == 3:
+        numbers = "c_{45} "
+    elif s == 4:  
+       numbers =  "c_{46} "
+    elif s == 5:
+        numbers = "c_{47} "
+    elif s == 6:
+        numbers = "c_{48} "
+    elif s == 7:
+        numbers = "c_{49} "
+    elif s == 8:
+        numbers = "c_{50} "
+    else:
+        numbers = "c_{51} "
+    return numbers
+
+# Funcion que determina tipo del conjunto
+def get_set(type):
+    esp = ""
+    if "array" in type:
+        type = type.replace("array","")
+        type = type.replace("[","")
+        type = type.replace("]","")
+        type = type.replace("..",",")
+        pila = type.split(",")
+        print(pila)
+        n1 = "("+ create_numbers(int(pila[0])) + ")"
+        n2 = "("+ create_numbers(int(pila[-1])) + ")"
+        exponente = f"c_{63} {n2} {n1}"
+        esp = f"c_{38} ({exponente}) c_{36}"
+    elif type == "int":
+        esp = "c_{36} "
+    else:
+        esp = "c_{37} "
+    return esp
+
+def get_asignation(item, block):
+    esp = ""
+    #print(item.left.type)
+    #print(item.right.type)
+    #2
+    x_1 = item.left.print_PAPP()
+    second = f"{item.right.print_PAPP()}" # Expresion
+    pila = item.left.print_PAPP_DQ()
+    pila.append(":=")
+    pila += item.right.print_PAPP_DQ()
+    #print(pila)
+    #1
+    incog = []
+    i = 0
+    for x in pila:
+        if x in tables[block].esp:
+            value = tables[block].esp[x]
+            incog.append(value)
+            pila[i] = value
+        i+=1
+    #2.1
+    pila = list(pila)  
+    while(True):
+        i = pila[0]
+        #print(i)
+        if not i == ":=":
+            pila.pop(0)
+        else:
+            pila.pop(0)
+            break
+    # Supongamos que queremos eliminar elementos que contengan el término "termino"
+    termino = "x"
+    # Usando comprensión de lista para filtrar elementos
+    expresion_filtrada = [elemento for elemento in pila if termino in elemento]
+    expresion_filtrada = list(expresion_filtrada)
+    expresion_filtrada.insert(0, second)
+    
+    extra = incog.copy()
+    #print(expresion_filtrada)
+    #print(pila)
+    #print(incog)
+    #print(x_1)
+
+    first = f"c_{33} ({get_comma(incog)})"
+    second = f"c_{33} ({get_comma(expresion_filtrada)})"
+    #print(extra)
+    
+    predicado = recursive_incog(extra, first, second, block)
+    #print("###########################")
+    #print(first)
+    #print("###########################")
+    #print(second)
+    #print("###########################")
+    #print(predicado)
+    #print("###########################")
+    asignation = f"c_{19} ({predicado}) (\lambda x_{{120}}. c_{{32}} ({tables[block].ESP}) ({tables[block].ESP}))"
+    #print(asignation)
+    esp = f"c_{{24}} (c{{20}} (c_{{31}} c_{{40}} c_{{40}})) ({asignation})" #abort U
+    #esp += "("+get_asignation_PAPP(pila, block)+")"
+    return esp
+
+def recursive_incog(incog, first, second, block, i=0):
+    esp = ""
+    range = len(incog)-(i+1)
+    #print("aqui en lam")
+    #print(incog)
+    x = incog[i]
+    #print(x)
+    if not range == 0:
+        i+=1
+        a3 = recursive_incog(incog, first, second, block,i)
+        esp+= f"c_{{62}} c_{{4}} (\lambda {x}.c_{{8}}) (\lambda {x}. {a3})"
+        #print(incog)
+    else :
+        par_ordenado = f"c_{{31}} ({second}) ({first})"
+        esp+= f"c_{{62}} c_{{4}} (\lambda {x}.c_{{8}}) (\lambda {x}. c_{{15}} {par_ordenado} x_{{120}})"
+    return esp
+
+def get_comma(incog):
+    comma = ""
+    range = len(incog)-1
+    if (range != 0):
+        comma += "c_{21} "
+        item = incog.pop()
+        comma += "(" + item + ") "
+        comma += "("+get_comma(incog)+")"
+        return comma
+    else:
+        item = incog.pop()
+        comma += item
+        return comma
+    
+def get_expresion(incog, pila, block):
+    esp = ""
+    #print("estoy en get expresion")
+    incog.remove('x_1')
+    while(True):
+        i = pila[0]
+        #print(i)
+        if not i == ":=":
+            pila.pop(0)
+            incog.remove(i)
+        else:
+            pila.pop(0)
+            break
+    #print(pila)
+    #print(incog)
+    return esp
+
+def separar_numero(numero):
+    # Convertir el número a string para iterar sobre cada dígito
+    numero_str = str(numero)
+    # Convertir cada dígito de vuelta a entero y almacenar en una lista
+    digitos = [int(digito) for digito in numero_str]
+    return digitos  
+  
 def find_column(input,token):
   ultimoSalto = input.rfind('\n',0,token.lexpos)
   if ultimoSalto < 0:
@@ -1447,8 +1901,18 @@ if __name__ == "__main__":
             contenido = ' '.join(f.readlines())
         result = parser.parse(contenido)
         result.add_context()
-        result.print_AST()
+        #result.print_AST()
+        for i in range(len(tables)):
+            tables[i].create_ESP()
+            #print(tables[i].symbols)
+            #print(tables[i].long)
+            #print(tables[i].loop)
+            print(tables[i].esp)
+            print(tables[i].ESP)
+        sem = result.print_PAPP()
 
+        print(sem)
+        
     except:
         if f.name.endswith('.gcl') == False: # Verifica que sea un .gcl
             print("Archivo no encontrado o no es de extensión .gcl, indique un archivo para analizar")
