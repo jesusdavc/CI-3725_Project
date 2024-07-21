@@ -892,6 +892,7 @@ class Asignation:
 
     def print_PAPP(self, level=0, block = 0):
         AST = ""
+        #print("ASIG PAPP")
         AST+= get_asignation(self,block)
         #AST+= self.right.print_AST(level+1, block)
         return AST
@@ -936,9 +937,9 @@ class Space_Declare:
         if (self.right.type == "Secuencia"):
             ret += self.right.print_PAPP(level+1, block)
         elif(self.right.type == "Block"):
-            ret += self.right.print_AST(level, block+1)
+            ret += self.right.print_PAPP(level, block+1)
         else:
-            self.right.print_AST(level, block)
+            ret+= self.right.print_PAPP(level, block)
         return ret
 #Clase para la creacion de nodos para la declaracion de producciones con coma
 class Comma:
@@ -2051,7 +2052,6 @@ if __name__ == "__main__":
             #print(tables[i].esp)
             #print(tables[i].ESP)
         sem = result.print_PAPP()
-
         print(sem)
         
     except:
