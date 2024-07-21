@@ -551,10 +551,11 @@ class Secuencia:
             x.print_AST(level+1, block)
 
     #Metodo para imprimir el arbol AST en una pila     
-    def print_AST_DQ(self,level=0):
+    def print_AST_DQ(self,level=0, block=0):
         pila = deque()
         ret = "-"*level + self.type 
-        print(ret)
+        if block == 0:
+            print(ret)
         pila.append(self.left)
     
         if (self.right.type == "Secuencia"):
@@ -596,18 +597,15 @@ class Secuencia:
         #print("AQUI EN SECUENCIA")
         #print(self.left)
         #print(self.right)
-        if not self.left.type == "Tpdeclare":
-            ret = ""
-
         if(self.left.type == "Secuencia"):
             #print("check secuencia")
-            pila += self.left.print_AST_DQ(level+1)
+            pila += self.left.print_AST_DQ(level+1,1)
         else:
             pila.append(self.left)
         #print(pila)
         if(self.right.type == "Secuencia"):
             #print("check secuencia")
-            pila += self.right.print_AST_DQ(level+1)
+            pila += self.right.print_AST_DQ(level+1,1)
         else:
             pila.append(self.right)
         #print("Estoy en secuencia")
@@ -618,19 +616,41 @@ class Secuencia:
         while(i>0):
             check = False
             for x in pila:
+                #print(x)
                 #print(x.type)
+                #print(x.right.type)
                 if x is None:
                     continue
-                elif x.type == "TwoPoints" or x.type == "Tpdeclare" or x.type == "SDeclare":   
+                elif x.type == "TwoPoints":
+                    # Caso para evitar la impresion de un declare
+                    #print("1")
+                    if x.right.type == "SDeclare":
+                        #print("w")
+                        pila.remove(x)
+                        p = x.print_AST_DQ(level+1)
+                        pila.appendleft(p[-1])
+                        check = True
+                        #print(pila)
+                        break
+                    else:
+                        pila.remove(x)
+                        check = True
+                        break
+                elif x.type == "Tpdeclare":   
                     # Caso para evitar la impresion de un declare
                     #print("1")
                     pila.remove(x)
                     check = True
                     break
+                elif x.type == "SDeclare":
+                    pila.remove(x)
+                    pila = x.print_AST_DQ(level+1) + pila
+                    check = True
+                    break
                 elif x.type == "Secuencia":
                     #print("loop s")
                     pila.remove(x)
-                    pila = x.print_AST_DQ(level+1) + pila
+                    pila = x.print_AST_DQ(level+1,1) + pila
                     check = True
                     break
                     #p = x.print_AST_DQ()
@@ -809,7 +829,7 @@ class TwoPoints:
         #print(self.right)
         AST+= "("+self.right.print_PAPP(level+1, block)+") "
         AST+= "("+self.left.print_PAPP(level+1, block)+") "
-        print(AST)
+        #print(AST)
         return AST
 #Clase para la creacion de nodos para la declaracion de producciones con asignacion
 class Asignation:
@@ -1078,17 +1098,17 @@ class Aritmetic:
 
     def print_PAPP(self, level=0, block = 0):
         if (self.type == "UMINUS"):
-            AST = "c_{64} "
+            AST = "c_{64}"
             AST+="("+ self.left.print_PAPP(level, block)+")"
         else:
             AST = ""
             #print(AST)
             if (self.type == "Plus"):
-                AST += "c_{55} "
+                AST += "c_{55}"
             elif (self.type == "Minus"):
-                AST += "c_{56} "
+                AST += "c_{56}"
             else:
-                AST += "c_{57} "
+                AST += "c_{57}"
             AST+="("+self.right.print_PAPP(level+1, block)+")"
             AST+= "("+self.left.print_PAPP(level+1, block)+")"
         return AST
@@ -1221,7 +1241,7 @@ class ReadArray:
             ret = ""
             ret+= "("+self.left.print_PAPP(level+1, block)+ ") "
             ret+= self.right.print_PAPP(level+1, block)
-            print(ret)
+            #print(ret)
             return ret
     
     def print_PAPP_DQ(self, level=0):
@@ -1270,18 +1290,19 @@ class WriteArray:
         sys.exit(1)
 
     def print_PAPP(self, level=0, block = 0):
-        print("ESTOY EN WAPAPP")
-        print(self.left)
-        print(self.right)
-        ret = "c_{58} "
+        #print("ESTOY EN WAPAPP")
+        #print(self.left)
+        #print(self.right)
+        ret = "c_{58}"
         ret+= self.right.print_PAPP(level+1, block)
-        print(ret)
+        #print(ret)
         ret+= "("+self.left.print_PAPP(level+1, block)+") "
-        print(ret)
+        #print(ret)
         return ret
     
     # Obtencion de pila
     def print_PAPP_DQ(self, level=0):
+        #print("Aqui")
         pila = deque()
         pila.append("(")
         pila += self.left.print_AST_DQ(level)
@@ -1305,14 +1326,14 @@ class Not:
     
     def print_PAPP(self, level=0, block = 0):
         #print("ESTOY en NOT PA")
-        ret = "c_{7} "
+        ret = "c_{7}"
         #print(self.children)
         ret += "("+self.children.print_PAPP(level+1, block)+")" 
         return ret 
      
     def print_PAPP_DQ(self, level=0, block = 0):
         #print("ESTOY en NOT DQ")
-        ret = "c_{7} "
+        ret = "c_{7}"
         ret+="("+self.children.print_PAPP(level+1, block)+")"
         return ret      
      
@@ -1454,21 +1475,21 @@ class Condition:
     def print_PAPP(self, level=0, block = 0):
         ret = ""
         if (self.type == "And"):
-            ret+= "c_{5} "
+            ret+= "c_{5}"
         elif (self.type == "Or"):
-            ret+= "c_{4} "
+            ret+= "c_{4}"
         elif (self.type == "Less"):
-            ret+= "c_{65} "
+            ret+= "c_{65}"
         elif (self.type == "Leq"):
-            ret+= "c_{66} "
+            ret+= "c_{66}"
         elif (self.type == "Geq"):
-            ret+= "c_{68} "
+            ret+= "c_{68}"
         elif (self.type == "Greater"):
-            ret+= "c_{67} "
+            ret+= "c_{67}"
         elif (self.type == "Equal"):
-            ret+= "c_{15} "
+            ret+= "c_{15}"
         elif (self.type == "NEqual"):
-            ret+= "c_{59} "
+            ret+= "c_{59}"
         ret+="("+self.right.print_PAPP(level+1, block)+")"
         ret+= "("+self.left.print_PAPP(level+1, block)+")"
         return ret
@@ -1734,7 +1755,7 @@ def concat_numbers(p):
     range = len(p)-1
     #print(p)
     if (range != 0):
-        concat += "c_{54} "
+        concat += "c_{54}"
         n = p.pop()
         id = get_number(n)
         concat += "("+concat_numbers(p)+")"
@@ -1753,7 +1774,7 @@ def concat_set(p):
         concat += "c_{32} "
         item = p.pop()
         type = get_set(item)
-        concat += "(" + type + ") "
+        concat += "(" + type + ")"
         concat += "("+concat_set(p)+")"
         return concat
     else:
@@ -1767,7 +1788,7 @@ def concat_secuencia(p, block):
     range = len(p)-1
     #print(p)
     if (range != 0):
-        concat += "c_{34} "
+        concat += "c_{34}"
         item = p.pop()
         type = "noting"
         if item.type == "Asignacion: ":
@@ -1790,25 +1811,25 @@ def concat_secuencia(p, block):
 def get_number(s):
     numbers = ""
     if s == 0:
-        numbers = "c_{42} "
+        numbers = "c_{42}"
     elif s == 1:
-        numbers = "c_{43} "
+        numbers = "c_{43}"
     elif s == 2:
-        numbers = "c_{44} "
+        numbers = "c_{44}"
     elif s == 3:
-        numbers = "c_{45} "
+        numbers = "c_{45}"
     elif s == 4:  
-       numbers =  "c_{46} "
+       numbers =  "c_{46}"
     elif s == 5:
-        numbers = "c_{47} "
+        numbers = "c_{47}"
     elif s == 6:
-        numbers = "c_{48} "
+        numbers = "c_{48}"
     elif s == 7:
-        numbers = "c_{49} "
+        numbers = "c_{49}"
     elif s == 8:
-        numbers = "c_{50} "
+        numbers = "c_{50}"
     else:
-        numbers = "c_{51} "
+        numbers = "c_{51}"
     return numbers
 
 # Funcion que determina tipo del conjunto
@@ -1824,11 +1845,11 @@ def get_set(type):
         n1 = "("+ create_numbers(int(pila[0])) + ")"
         n2 = "("+ create_numbers(int(pila[-1])) + ")"
         exponente = f"c_{63} {n2} {n1}"
-        esp = f"c_{38} ({exponente}) c_{36}"
+        esp = f"c_{38}({exponente})c_{36}"
     elif type == "int":
-        esp = "c_{36} "
+        esp = "c_{36}"
     else:
-        esp = "c_{37} "
+        esp = "c_{37}"
     return esp
 
 def get_asignation(item, block):
@@ -1886,7 +1907,7 @@ def get_asignation(item, block):
     #    print("T")
     #else:
     #    print("F")
-    second = f"c_{33} ({get_comma2(extra, second, x_1)})"
+    second = f"c_{33}({get_comma2(extra, second, x_1)})"
     #print(extra)
     
     predicado = recursive_incog(extra2, first, second, block)
@@ -1897,9 +1918,9 @@ def get_asignation(item, block):
     #print("###########################")
     #print(predicado)
     #print("###########################")
-    asignation = f"c_{{19}} (\\lambda x_{{120}}. {predicado}) (\\lambda x_{{120}}. c_{{32}} ({tables[block].ESP}) ({tables[block].ESP}))"
+    asignation = f"c_{{19}}(\\lambda x_{{120}}.{predicado})(\\lambda x_{{120}}.c_{{32}}({tables[block].ESP})({tables[block].ESP}))"
     #print(asignation)
-    esp = f"c_{{24}} (c{{20}} (c_{{31}} c_{{40}} c_{{40}})) ({asignation})" #abort U
+    esp = f"c_{{24}}(c{{20}}(c_{{31}}c_{{40}}c_{{40}}))({asignation})" #abort U
     #esp += "("+get_asignation_PAPP(pila, block)+")"
     return esp
 
@@ -1947,16 +1968,16 @@ def get_if(item, block):
     i=0
     # creacion de sem<instruccion > o id
     for x in list_S:
-        element = f"c_{{34}} ({list_id[i]}) ({x})"
+        element = f"c_{{34}}({list_id[i]}) ({x})"
         list_first.append(element)
         i+=1
     # Union de todos los sem<instruccion > o id
     first = f"c_{{33}} ({get_union(list_first)})"
     # Union de Ti
-    second_left = f"c_{{33}} ({get_union(list_T)})"
-    second_left = f"c_{{41}} ({second_left}))"
-    second = f"c_{{33}} (c_{{32}} (c_{{20}} c_{{40}}) ({second_left}))"
-    esp = f"c_{{24}} ({second}) ({first})"
+    second_left = f"c_{{33}}({get_union(list_T)})"
+    second_left = f"c_{{41}}({second_left}))"
+    second = f"c_{{33}}(c_{{32}}(c_{{20}}c_{{40}})({second_left}))"
+    esp = f"c_{{24}}({second})({first})"
     #print(list_T)
     #print(list_S)    
     #print("Aqui")
@@ -1972,11 +1993,11 @@ def recursive_incog(incog, first, second, block, i=0):
     if not range == 0:
         i+=1
         a3 = recursive_incog(incog, first, second, block,i)
-        esp+= f"c_{{62}} c_{{4}} (\\lambda {x}.c_{{8}}) (\\lambda {x}. {a3})"
+        esp+= f"c_{{62}}c_{{4}}(\\lambda {x}.c_{{8}})(\\lambda {x}.{a3})"
         #print(incog)
     else :
-        par_ordenado = f"c_{{31}} ({second}) ({first})"
-        esp+= f"c_{{62}} c_{{4}} (\\lambda {x}.c_{{8}}) (\\lambda {x}. c_{{15}} ({par_ordenado}) x_{{120}})"
+        par_ordenado = f"c_{{31}}({second})({first})"
+        esp+= f"c_{{62}}c_{{4}}(\\lambda {x}.c_{{8}})(\\lambda {x}. c_{{15}}({par_ordenado}) x_{{120}})"
     return esp
 
 def get_comma(incog):
@@ -1984,9 +2005,9 @@ def get_comma(incog):
     range = len(incog)-1
     #print(range)
     if (range != 0):
-        comma += "c_{21} "
+        comma += "c_{21}"
         item = incog.pop()
-        comma += "(" + item + ") "
+        comma += "(" + item + ")"
         comma += "("+get_comma(incog)+")"
         return comma
     else:
@@ -2000,7 +2021,7 @@ def get_comma2(incog, second, stop):
     #print(range)
     #print(stop)
     if (range != 0):
-        comma += "c_{21} "
+        comma += "c_{21}"
         item = incog.pop()
         #print(item)
         if item == stop:
@@ -2022,9 +2043,9 @@ def get_union(pila):
     union = ""
     range = len(pila)-1
     if (range != 0):
-        union += "c_{24} "
+        union += "c_{24}"
         item = pila.pop()
-        union += "(" + item + ") "
+        union += "(" + item + ")"
         union += "("+get_union(pila)+")"
         return union
     else:
