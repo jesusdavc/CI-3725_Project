@@ -1976,7 +1976,7 @@ def recursive_incog(incog, first, second, block, i=0):
         #print(incog)
     else :
         par_ordenado = f"c_{{31}}({second}) ({first})"
-        esp+= f"c_{{62}}c_{{4}}(\\lambda {x}.c_{{8}})(\\lambda {x}.c_{{15}}({par_ordenado}) x_{{120}})"
+        esp+= f"c_{{62}}c_{{4}}(\\lambda {x}.c_{{8}})(\\lambda {x}.c_{{15}}({par_ordenado})(x_{{120}}))"
     return esp
 
 def get_comma(incog):
@@ -2024,7 +2024,7 @@ def get_union(pila):
     if (range != 0):
         union += "c_{24}"
         item = pila.pop()
-        union += "(" + item + ") "
+        union += "(" + item + ")"
         union += "("+get_union(pila)+")"
         return union
     else:
