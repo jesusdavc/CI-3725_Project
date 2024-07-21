@@ -1754,6 +1754,10 @@ def create_numbers(s):
         #print(pila)
         numbers = concat_numbers(pila)
         #print(numbers)
+    elif s < 0:
+        numbers += "c_{63}"
+        s = s*(-1)
+        numbers += "("+create_numbers(s)+")"
     else:
         numbers = get_number(s)
         #print(numbers)
@@ -1853,8 +1857,8 @@ def get_set(type):
         #print(pila)
         n1 = "("+ create_numbers(int(pila[0])) + ")"
         n2 = "("+ create_numbers(int(pila[-1])) + ")"
-        exponente = f"c_{63} {n2} {n1}"
-        esp = f"c_{{38}}({exponente})c_{{36}}"
+        exponente = f"c_{{63}}{n2}{n1}"
+        esp = f"c_{{38}}({exponente})(c_{{36}})"
     elif type == "int":
         esp = "c_{36}"
     else:
