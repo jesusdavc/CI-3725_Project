@@ -15,8 +15,8 @@ precedence = (
     ('left', 'TkSemicolon'),
     ('left', 'TkAsig'),
     ('left', 'TkTwoPoints'),
-    ('left', 'TkPlus'),
     ('left', 'TkMinus'),
+    ('left', 'TkPlus'),
     ('left', 'TkMult'),
     ('left', 'UMINUS'),
     ('left', 'TkComma'),
@@ -118,13 +118,13 @@ def p_expresion_uminus(p):
 def p_expresion_aritmetic(p):
     '''aritmetic : aritmetic TkPlus aritmetic
                 | aritmetic TkMinus aritmetic
-                | word TkMinus aritmetic
                 | aritmetic TkMult aritmetic
                 | TkOpenPar aritmetic TkClosePar
                 | negative
                 | number
                 | readArray
                 | word '''
+               #| word TkMinus aritmetic
     if(len(p) > 2 and p[1] != '('):
         if(p[2] == '+'):
             p[0] = Aritmetic("Plus", p[1], p[3])
@@ -594,6 +594,8 @@ class Secuencia:
         ret = ""
         pila = deque()
         #print("AQUI EN SECUENCIA")
+        #print(self.left)
+        #print(self.right)
         if not self.left.type == "Tpdeclare":
             ret = ""
 
@@ -607,10 +609,11 @@ class Secuencia:
             #print("check secuencia")
             pila += self.right.print_AST_DQ(level+1)
         else:
-            pila += self.right.print_AST_DQ(level+1)
+            pila.append(self.right)
         #print("Estoy en secuencia")
         #print(pila)
-        pila.pop()
+        if (pila[-1].type == "Secuencia"):
+            pila.pop()
         i = 3
         while(i>0):
             check = False
@@ -1076,7 +1079,7 @@ class Aritmetic:
     def print_PAPP(self, level=0, block = 0):
         if (self.type == "UMINUS"):
             AST = "c_{64} "
-            AST+= self.left.print_PAPP(level, block)
+            AST+="("+ self.left.print_PAPP(level, block)+")"
         else:
             AST = ""
             #print(AST)
@@ -1729,12 +1732,13 @@ def create_numbers(s):
 def concat_numbers(p):
     concat = ""
     range = len(p)-1
+    #print(p)
     if (range != 0):
         concat += "c_{54} "
-        n = p.pop(0)
+        n = p.pop()
         id = get_number(n)
-        concat += id
         concat += "("+concat_numbers(p)+")"
+        concat += id
         return concat
     else:
         n = p.pop(0)
@@ -1761,6 +1765,7 @@ def concat_set(p):
 def concat_secuencia(p, block):
     concat = ""
     range = len(p)-1
+    #print(p)
     if (range != 0):
         concat += "c_{34} "
         item = p.pop()
@@ -1892,7 +1897,7 @@ def get_asignation(item, block):
     #print("###########################")
     #print(predicado)
     #print("###########################")
-    asignation = f"c_{19} (\\lambda x_{120}. {predicado}) (\\lambda x_{{120}}. c_{{32}} ({tables[block].ESP}) ({tables[block].ESP}))"
+    asignation = f"c_{{19}} (\\lambda x_{{120}}. {predicado}) (\\lambda x_{{120}}. c_{{32}} ({tables[block].ESP}) ({tables[block].ESP}))"
     #print(asignation)
     esp = f"c_{{24}} (c{{20}} (c_{{31}} c_{{40}} c_{{40}})) ({asignation})" #abort U
     #esp += "("+get_asignation_PAPP(pila, block)+")"
@@ -2050,7 +2055,7 @@ if __name__ == "__main__":
             contenido = ' '.join(f.readlines())
         result = parser.parse(contenido)
         result.add_context()
-        #result.print_AST()
+        result.print_AST()
         for i in range(len(tables)):
             tables[i].create_ESP()
         sem = result.print_PAPP()
