@@ -1854,7 +1854,7 @@ def get_set(type):
         n1 = "("+ create_numbers(int(pila[0])) + ")"
         n2 = "("+ create_numbers(int(pila[-1])) + ")"
         exponente = f"c_{63} {n2} {n1}"
-        esp = f"c_{38}({exponente})c_{36}"
+        esp = f"c_{{38}}({exponente})c_{{36}}"
     elif type == "int":
         esp = "c_{36}"
     else:
