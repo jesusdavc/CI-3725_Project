@@ -15,8 +15,8 @@ precedence = (
     ('left', 'TkSemicolon'),
     ('left', 'TkAsig'),
     ('left', 'TkTwoPoints'),
-    ('left', 'TkMinus'),
     ('left', 'TkPlus'),
+    ('left', 'TkMinus'),
     ('left', 'TkMult'),
     ('left', 'UMINUS'),
     ('left', 'TkComma'),
@@ -105,19 +105,26 @@ def p_expresion_asig(p):
     
     p[0] = Asignation("Asignacion: ", p[1], p[3])
 
+
+# Produccion para detectar un valor negativo
+def p_expresion_uminus(p):
+    '''negative : TkMinus number %prec UMINUS
+                | TkMinus readArray %prec UMINUS
+                | TkMinus word %prec UMINUS
+                | TkMinus TkOpenPar aritmetic TkClosePar %prec UMINUS'''
+    p[0] = Aritmetic("UMINUS",p[2])
+
 # Produccion para detectar aritmetica
 def p_expresion_aritmetic(p):
-    '''aritmetic :  word     
-                 | readArray             
-                 | number
-                 | negative
-                 | aritmetic TkMinus aritmetic
-                 | aritmetic TkPlus aritmetic
-                 | aritmetic TkMult aritmetic
-                 | TkOpenPar aritmetic TkClosePar
-                 | word TkMinus aritmetic
-                 '''
-    #                 | word TkMinus aritmetic caso donde b-a pelado
+    '''aritmetic : aritmetic TkPlus aritmetic
+                | aritmetic TkMinus aritmetic
+                | word TkMinus aritmetic
+                | aritmetic TkMult aritmetic
+                | TkOpenPar aritmetic TkClosePar
+                | negative
+                | number
+                | readArray
+                | word '''
     if(len(p) > 2 and p[1] != '('):
         if(p[2] == '+'):
             p[0] = Aritmetic("Plus", p[1], p[3])
@@ -131,14 +138,6 @@ def p_expresion_aritmetic(p):
             p[0] = p[2]
     else: 
         p[0] = p[1]
-
-# Produccion para detectar un valor negativo
-def p_expresion_uminus(p):
-    '''negative : TkMinus number %prec UMINUS
-                | TkMinus readArray %prec UMINUS
-                | TkMinus word %prec UMINUS
-                | TkMinus TkOpenPar aritmetic TkClosePar %prec UMINUS'''
-    p[0] = Aritmetic("UMINUS",p[2])
 
 # Produccion para detectar la expresion no terminal TwoPoints
 def p_expresion_two_point(p):
@@ -372,10 +371,16 @@ def p_coment(p):
     '''expresion : TkComent'''
     pass
 
+def find_column(input,token):
+  ultimoSalto = input.rfind('\n',0,token.lexpos)
+  if ultimoSalto < 0:
+    ultimoSalto = 0
+  column = (token.lexpos - ultimoSalto) + 1
+  return column
 # Manejador de errores 
 def p_error(p):
-    print(p)
-    print("Syntax error in input!")
+    print(f"Error de sintaxis en la linea {p.lineno -1} columna:  + {str(find_column(p.lexer.lexdata,p))} : token inesperado: {p.value}")
+    yacc.restart()
 
 
 #Inicializador del parser
@@ -400,8 +405,6 @@ class Atom:
             AST =""
         elif(self.value == None):
             AST = "-"*level + self.type
-        elif(self.type == "String: "):
-            AST = "-"*level + self.type + self.value
         else:
             AST = "-"*level + self.type +self.value + " | "+ "type: "+ self.context
         print(AST)
@@ -426,7 +429,7 @@ class Atom:
         else:
             # Si es una variable, se busca en la tablas de simbolos
             while block > -1 :
-            
+                
                 # Se busca en la tabla de simbolos
                 value = tables[block].get(self.value)
                 # Si no se encuentra en la tabla de simbolos, se busca en el aparta loop
@@ -463,7 +466,8 @@ class Atom:
     def print_PAPP_DQ(self, level=0):
         pila = deque()
         pila.append(self.value)
-        return pila    
+        return pila 
+    
 class Reserved:
     #Constructor de la clase
     def __init__(self, type, left=None, right=None, value=None, context=None):
@@ -481,10 +485,8 @@ class Reserved:
     def print_AST(self, level=0, block=0):
         if(self.value == None):
             AST = "-"*level + self.type
-        elif self.value == "skip":
-            AST = "-"*level + self.type
         else:
-            AST = "-"*level + self.type +self.value +" | " + "type: "+ self.context
+            AST = "-"*level + self.type +self.value +" | "+ "type: "+ self.context
         print(AST)
 
     #Metodo para imprimir el arbol AST en una pila y poder
@@ -516,7 +518,7 @@ class Reserved:
     def print_PAPP_DQ(self, level=0):
         pila = deque()
         pila.append(self.value)
-        return pila          
+        return pila        
 #Clase para la creacion de nodos para punto y comas(;)
 class Secuencia:
 
@@ -549,11 +551,10 @@ class Secuencia:
             x.print_AST(level+1, block)
 
     #Metodo para imprimir el arbol AST en una pila     
-    def print_AST_DQ(self,level=0, check=0):
+    def print_AST_DQ(self,level=0):
         pila = deque()
-        if check != 1:
-            ret = "-"*level + self.type 
-            print(ret)
+        ret = "-"*level + self.type 
+        print(ret)
         pila.append(self.left)
     
         if (self.right.type == "Secuencia"):
@@ -688,13 +689,8 @@ class TwoPoints:
     def add_context(self, block=0):
         if (self.right.type == "Space" or self.right.type == "SDeclare"):
             # Verifica si el hijo derecho es una clase Space_Declare
-            if (self.left.type == "Secuencia"):
-                pila_left = self.left.print_AST_DQ(check=1)
-            elif (self.right.type == "Secuencia"):
-                pila = self.right.print_AST_DQ(check=1)
-            else:
-                pila_left = self.left.print_AST_DQ()
-                pila = self.right.print_AST_DQ()
+            pila_left = self.left.print_AST_DQ()
+            pila = self.right.print_AST_DQ()
             pila_right = pila.popleft().print_AST_DQ()
             long = None
             # Verifica si el hijo derecho es una clase reservada
@@ -743,8 +739,6 @@ class TwoPoints:
             # Se recorre la pila  con el fin de seguir agregando mas contexto
             # Debido a que estamos en Space se debe hacer esto, sino ocurre 
             # un recorrido incompleto
-            if (pila[-1].type == "Secuencia"):
-                pila.pop()
             while len(pila) > 0:
                 element = pila.popleft()
                 # Verifica si el elemento es un bloque
@@ -753,7 +747,8 @@ class TwoPoints:
                     # usando otra tabla
                     element.add_context(block+1)
                 elif (element.type != 'Empty'):
-                    element.add_context(block)
+                    element.add_context()
+
         elif (self.right.type == "ReadArray" or self.right.value == "int" or self.right.value == "bool" 
             or self.right.value == "array"): 
             # Verifica si el hijo derecho es una clase reservada
@@ -803,7 +798,7 @@ class TwoPoints:
                 # Ambos hijos no coinciden con la clase
                 print("Hubo un error con el contexto entre elementos")
                 sys.exit(1)
-    
+
     def print_PAPP(self, level=0, block =0):
         # Verificamos si es una clase Space_Declare o una clase Reserved
         AST = ""
@@ -846,16 +841,7 @@ class Asignation:
         if self.left.type == "ReadArray":
             print("Error el valor de la asignacion izquierda es una lectura de arreglo")
             sys.exit(1)
-                #Casos array:= Array[x] y Array[x] := int
-        elif "array" in context_left and self.right.type == "ReadArray":
-            print("Error por la izquierda en la asignacion")
-            sys.exit(1)
-        elif context_left == "int" and self.right.type == "Comma":
-            print("Asignacion de una lista a un entero")
-            sys.exit(1)
-        elif tables[block].lookup_loop(self.left.value):
-            print("Asignacion no posible, variable a cambiar es del iterador")
-            sys.exit(1)
+
         if self.right.type == "Comma" and ("array" in context_left 
             or "ReadArray" in context_left):
             # Verifica si el hijo derecho es una coma
@@ -875,18 +861,17 @@ class Asignation:
         else:
             context_right = self.right.add_context(block)
 
-        if "array" in context_right and self.right.type == "Ident: ":
-            print("Error por la derecha en la asignacion")
-            sys.exit(1)
-        elif context_right == "bool" and "array" in self.left.context :
-            print("Error por la derecha en la asignacion")
-            sys.exit(1)
-        elif context_left == "bool" and "array" in self.right.context :
+        #Casos array:= Array[x] y Array[x] := int
+        if "array" in context_left and self.right.type == "ReadArray":
             print("Error por la izquierda en la asignacion")
             sys.exit(1)
-        elif not (("array" in context_left) or ("array" in context_right) or 
-                context_left == context_right): 
-            # Verifica si el contexto de los hijos es igual
+        elif "array" in context_right and self.right.type == "Ident: ":
+            print("Error por la derecha en la asignacion")
+            sys.exit(1)
+
+        # Verifica si el contexto de los hijos es igual
+        if not (("array" in context_left) or ("array" in context_right) or 
+                context_left == context_right):
             print("Error con el tipo de asignacion")
             sys.exit(1)
 
@@ -910,8 +895,6 @@ class Space_Declare:
             self.left.print_AST(level)
         if (self.right.type == "Secuencia"):
             self.right.print_AST(level+1, block)
-        elif(self.right.type == "Block"):
-            self.right.print_AST(level, block+1)
         else:
             self.right.print_AST(level, block)
 
@@ -920,7 +903,7 @@ class Space_Declare:
         pila = deque()
         pila.append(self.left)
         if (self.right.type == "Secuencia"):
-            pila += self.right.print_AST_DQ(level+1,1)
+            pila += self.right.print_AST_DQ(level+1)
         pila.append(self.right)
         return pila
     
@@ -1020,6 +1003,7 @@ class Concat:
         self.left.add_context(block)
         self.right.add_context(block) 
 
+
 #Clase para la creacion de nodos para la declaracion de producciones con 
 # operaciones aritmeticas   
 class Aritmetic:
@@ -1033,7 +1017,7 @@ class Aritmetic:
     #Metodo para imprimir el arbol AST
     def print_AST(self, level=0, block = 0):
         if (self.type == "UMINUS"):
-            AST = "-"*level + 'Minus' + " | "+ "type: "+ self.context
+            AST = "-"*level + 'Minus'
             print(AST)
             self.left.print_AST(level+1, block)
         else:
@@ -1065,8 +1049,6 @@ class Aritmetic:
             if self.left.type == "Ident: " and ("array" in context):
                 print("Error con el tipo de contexto al asignar UMINUS")
                 sys.exit(1)
-            elif context == "bool":
-                print("Error con es tipo booleano al asignar UMINUS")
             else:
                 return "int"
         else:
@@ -1090,7 +1072,6 @@ class Aritmetic:
             else:
                 print("Error con el contexto de la operacion ")
                 sys.exit(1)
-
 
     def print_PAPP(self, level=0, block = 0):
         if (self.type == "UMINUS"):
@@ -1127,7 +1108,7 @@ class Aritmetic:
                 pila.append("*")
             pila += self.right.print_PAPP_DQ()
             return pila
-        
+
 # Clase para la gramatica print
 class Print:  
     # Construtor
@@ -1145,6 +1126,7 @@ class Print:
                 level+= len(pila)
                 AST = "-"*level + self.type
                 print(AST)
+                print(pila)
                 while(len(pila)>0):
                     x = pila.popleft()
                     x.print_AST(level+1, block)
@@ -1167,11 +1149,12 @@ class Print:
             if(self.right is not None):
                 pila = deque()
                 pila += self.left.print_AST_DQ()
+                print(pila)
                 while(len(pila)>0):
                     x = pila.popleft()
                     x.add_context()
             else:
-                self.left.add_context(block) 
+                self.left.add_context(block)
 
     def print_PAPP(self, level=0, block = 0):
         ret = "EXPRESION"
@@ -1203,28 +1186,26 @@ class ReadArray:
             ret+= " ".join(self.print_AST_DQ())
             print(ret)
         else:
-            ret = "-"*level + self.type + " | "+ "type: "+ self.context
+            ret = "-"*level + self.type
             print(ret)
             self.left.print_AST(level+1, block)
             self.right.print_AST(level+1, block)
     # Obtener pila
     def print_AST_DQ(self, level=0):
+
         pila = deque()
         pila += self.left.print_AST_DQ()
         pila.append("[")
         pila += self.right.print_AST_DQ()
         pila.append("]")
+
         return pila
-    
     # Contexto
     def add_context(self, block=0):
         context_left = self.left.add_context(block)
         contexto_right = self.right.add_context(block)
         # Caso int := array[booleano]
-        if context_left == "int":
-            print("El contexto izquierdo de la lectura del array es incorrecto")
-            sys.exit(1)
-        elif "array" in context_left or context_left == "int":
+        if "array" in context_left or context_left == "int":
             if (contexto_right == "int"):
                 self.context = "int"
                 return context_left
@@ -1247,6 +1228,7 @@ class ReadArray:
         pila += self.right.print_AST_DQ()
         pila.append("]")
         return pila
+    
 # Clase para lectura de array
 class WriteArray:
     # Construtor
@@ -1254,10 +1236,10 @@ class WriteArray:
         self.type = type
         self.left = left
         self.right = right
-        self.context = "int"
+
     # Impresion del arbol
     def print_AST(self, level=0, block = 0):
-        ret = "-"*level + self.type+":" + " | "+ "type: "+ self.context
+        ret = "-"*level + self.type+":"
         print(ret)
         self.left.print_AST(level+1, block)
         self.right.print_AST(level+1, block)
@@ -1277,7 +1259,7 @@ class WriteArray:
         #Caso analogo al readArray
         if "array" in context_left or context_left == "int":
             if (contexto_right == "int"):
-                self.context = context_left
+                self.context = "int"
                 return context_left
             print("El contexto derecho de la lectura del array es incorrecto")
             sys.exit(1)
@@ -1302,6 +1284,7 @@ class WriteArray:
         pila += self.left.print_AST_DQ(level)
         pila.append(")")
         return pila
+    
 class Not:
 
     def __init__(self, type, children):
@@ -1309,13 +1292,14 @@ class Not:
         self.children = children
 
     def print_AST(self, level=0, block = 0):
-        ret = "-"*level + self.type + " | "+ "type: bool"
+        ret = "-"*level + self.type
         print(ret)
         self.children.print_AST(level+1, block)
 
     def add_context(self, block=0):
         context = self.children.add_context(block)
         return context
+    
     def print_PAPP(self, level=0, block = 0):
         #print("ESTOY en NOT PA")
         ret = "c_{7} "
@@ -1327,7 +1311,8 @@ class Not:
         #print("ESTOY en NOT DQ")
         ret = "c_{7} "
         ret+="("+self.children.print_PAPP(level+1, block)+")"
-        return ret  
+        return ret      
+     
 class Condition_If:
 
     def __init__(self,type, children = None,level = 0 ):
@@ -1339,14 +1324,15 @@ class Condition_If:
         ret = "-"*level + self.type 
         print(ret)
         self.children.print_AST(level+1, block)
-
+    
     def add_context(self, block=0):
+        print(self.children.type)
         self.children.add_context(block)
 
     def print_PAPP(self, level=0, block = 0):
         ret = ""
         ret+= self.children.print_AST(level+1, block)   
-        return ret
+        return ret   
 class Guard:
 
     def __init__(self, type, left=None, right=None):
@@ -1360,7 +1346,7 @@ class Guard:
         print(ret)
         pila.append(self.left)
         if(self.right.type == "Guard"):
-            pila += self.right.print_AST_DQ(level+1)
+            pila += self.right.print_AST_DQ(level+1, block)
         else:
             pila.append(self.right)
             
@@ -1368,14 +1354,13 @@ class Guard:
             x = pila.popleft()
             x.print_AST(level+1, block)
 
-    def print_AST_DQ(self,level=0, check=0):
+    def print_AST_DQ(self,level=0):
         pila = deque()
-        if check != 1:
-            ret = "-"*level + self.type 
-            #print(ret)
+        ret = "-"*level + self.type 
+        print(ret)
         pila.append(self.left)
         if (self.right.type == "Guard"):
-            pila += self.right.print_AST_DQ(level+1, check)
+            pila += self.right.print_AST_DQ(level+1)
         else:
             pila.append(self.right)
         return pila
@@ -1384,9 +1369,10 @@ class Guard:
         pila = deque()
         pila.append(self.left)
         if(self.right.type == "Guard"):
-            pila += self.right.print_AST_DQ(check=1)
+            pila += self.right.print_AST_DQ()
         else:
             pila.append(self.right)
+            
         while(len(pila)>0):
             x = pila.popleft()
             if(x.type == 'Block'):
@@ -1408,6 +1394,7 @@ class Guard:
             x = pila.popleft()
             ret += x.print_PAPP(level+1, block)
         return ret
+    
 class Arrow:
 
     def __init__(self, type, left=None, right=None):
@@ -1419,21 +1406,15 @@ class Arrow:
         ret = "-"*level + self.type
         print(ret)
         self.left.print_AST(level+1, block)
-        if (self.right.type == "Block"):
-            self.right.print_AST(level+1, block+1)
-        else:
-            self.right.print_AST(level+1, block)
+        self.right.print_AST(level+1, block)
 
     def add_context(self, block=0):
         context_left = self.left.add_context(block)
-
         if context_left != "bool":
+            print(context_left)
             print("Error en el contexto del lado izquierdo de la flechaf")
             sys.exit(1)
-        if self.right.type == "Block":
-            self.right.add_context(block+1)
-        else:
-            self.right.add_context(block)
+        self.right.add_context(block)
 
     def print_PAPP(self, level=0, block = 0):
         ret = ""
@@ -1452,7 +1433,7 @@ class Condition:
         self.context = context
 
     def print_AST(self, level=0, block = 0):
-        ret = "-"*level + self.type + " | "+ "type: "+ self.context
+        ret = "-"*level + self.type
         print(ret)
         self.left.print_AST(level+1, block)
         self.right.print_AST(level+1, block)
@@ -1460,13 +1441,13 @@ class Condition:
     def add_context(self, block=0):
         context_left = self.left.add_context(block)
         context_right = self.right.add_context(block)
-        if context_left == context_right or ("array" in context_left and context_right == "int") or ("array" in context_right and context_left == "int"):
+
+        if context_left == context_right:
             self.context = "bool"
             return self.context
         else:
-            print("Error en el tipo de contexto de la condicion ")
-            sys.exit(1)
-
+            return "ERROR"
+        
     def print_PAPP(self, level=0, block = 0):
         ret = ""
         if (self.type == "And"):
@@ -1528,9 +1509,10 @@ class Loop_For:
 
     def add_context(self, block=0):
         if self.type == "In":
-            if self.left.type == "Ident: ":
+            if not self.left.type == "Ident: ":
                 x = self.left.print_AST_DQ()
                 x = "".join(x)
+                print(x)
                 if not tables[block].lookup(x):
                     tables[block].add_loop(x)    
                     context_right = self.right.add_context(block)
@@ -1538,13 +1520,10 @@ class Loop_For:
                         print("Error en la asignacion de la variable a iterar en loop for(IN)")
                         sys.exit(1)
                     self.left.context = "int"
-                elif tables[block].lookup(x) and not "array" in tables[block].get(x) :
-                    context_left = self.left.add_context(block)
-                    context_right = self.right.add_context(block)
             else :
                 print("Variable para asignar con iterador en el for ya fue declarada")
                 sys.exit(1)
-        elif self.type == "To": 
+        elif self.type == "To":  
             context_left = self.left.add_context(block)
             context_right = self.right.add_context(block)
             if not context_left and context_right == "int":
@@ -1615,19 +1594,15 @@ class Declare:
         #print("en declare")
         ret+= self.children.print_PAPP(level+1, block)
         return ret
-
 class Block:
     
-    def __init__(self,type, children = None,level = 0,):
+    def __init__(self,type, children = None,level = 0):
         self.type = type
         self.level = level
         self.children = children
 
     def print_AST(self, level=0, block = 0):
         ret = "-"*level + self.type 
-        print(ret)
-        level+=1
-        ret = "-"*level + "Symbols Table"
         print(ret)
         self.children.print_AST(level+1, block)
 
@@ -1669,7 +1644,6 @@ class Transicion:
         else:
             AST+= self.children.print_PAPP(level, block)
         return AST
-    
 #Clase para manejo de errores.     
 class SyntaxErrorException(Exception):
     def __init__(self, message, lineno):
@@ -1867,14 +1841,15 @@ def get_asignation(item, block):
     pila += item.right.print_PAPP_DQ()
     #print(pila)
     #1
-    incog = []
+    incog = list(tables[block].esp.values())
+    '''
     i = 0
     for x in pila:
         if x in tables[block].esp:
             value = tables[block].esp[x]
             incog.append(value)
             pila[i] = value
-        i+=1
+        i+=1'''
     #2.1
     pila = list(pila)  
     while(True):
@@ -1888,21 +1863,28 @@ def get_asignation(item, block):
     # Supongamos que queremos eliminar elementos que contengan el término "termino"
     termino = "x"
     # Usando comprensión de lista para filtrar elementos
-    expresion_filtrada = [elemento for elemento in pila if termino in elemento]
-    expresion_filtrada = list(expresion_filtrada)
-    expresion_filtrada.insert(0, second)
+    #expresion_filtrada = [elemento for elemento in pila if termino in elemento]
+    #expresion_filtrada = list(expresion_filtrada)
+    #expresion_filtrada.insert(0, second)
     
     extra = incog.copy()
+    extra2 = incog.copy()
     #print(expresion_filtrada)
     #print(pila)
     #print(incog)
     #print(x_1)
 
     first = f"c_{33} ({get_comma(incog)})"
-    second = f"c_{33} ({get_comma(expresion_filtrada)})"
+    #print("termino first")
+    #print(second)
+    #if second is None:
+    #    print("T")
+    #else:
+    #    print("F")
+    second = f"c_{33} ({get_comma2(extra, second, x_1)})"
     #print(extra)
     
-    predicado = recursive_incog(extra, first, second, block)
+    predicado = recursive_incog(extra2, first, second, block)
     #print("###########################")
     #print(first)
     #print("###########################")
@@ -1910,11 +1892,12 @@ def get_asignation(item, block):
     #print("###########################")
     #print(predicado)
     #print("###########################")
-    asignation = f"c_{19} ({predicado}) (\\lambda x_{{120}}. c_{{32}} ({tables[block].ESP}) ({tables[block].ESP}))"
+    asignation = f"c_{19} (\\lambda x_{120}. {predicado}) (\\lambda x_{{120}}. c_{{32}} ({tables[block].ESP}) ({tables[block].ESP}))"
     #print(asignation)
     esp = f"c_{{24}} (c{{20}} (c_{{31}} c_{{40}} c_{{40}})) ({asignation})" #abort U
     #esp += "("+get_asignation_PAPP(pila, block)+")"
     return esp
+
 def get_if(item, block):
     #print("ESTOY EN GET_IF")
     item = item.children
@@ -1994,6 +1977,7 @@ def recursive_incog(incog, first, second, block, i=0):
 def get_comma(incog):
     comma = ""
     range = len(incog)-1
+    #print(range)
     if (range != 0):
         comma += "c_{21} "
         item = incog.pop()
@@ -2005,6 +1989,30 @@ def get_comma(incog):
         comma += item
         return comma
     
+def get_comma2(incog, second, stop):
+    comma = ""
+    range = len(incog)-1
+    #print(range)
+    #print(stop)
+    if (range != 0):
+        comma += "c_{21} "
+        item = incog.pop()
+        #print(item)
+        if item == stop:
+            comma += "(" + second + ")"
+        else:
+            comma += "("+item+")"
+        #print(comma)
+        comma += "("+get_comma2(incog, second, stop)+")"
+        return comma
+    else:
+        item = incog.pop()
+        if item == stop:
+            comma += second
+        else:
+            comma += item
+        return comma   
+     
 def get_union(pila):
     union = ""
     range = len(pila)-1
@@ -2032,7 +2040,6 @@ def find_column(input,token):
     ultimoSalto = 0
   column = (token.lexpos - ultimoSalto) + 1
   return column  
-
 if __name__ == "__main__":
     try:
         if len(sys.argv) != 2:
@@ -2046,14 +2053,8 @@ if __name__ == "__main__":
         #result.print_AST()
         for i in range(len(tables)):
             tables[i].create_ESP()
-            #print(tables[i].symbols)
-            #print(tables[i].long)
-            #print(tables[i].loop)
-            #print(tables[i].esp)
-            #print(tables[i].ESP)
         sem = result.print_PAPP()
         print(sem)
-        
     except:
         if f.name.endswith('.gcl') == False: # Verifica que sea un .gcl
             print("Archivo no encontrado o no es de extensión .gcl, indique un archivo para analizar")
